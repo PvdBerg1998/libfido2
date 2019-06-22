@@ -24,7 +24,7 @@ impl Fido {
         Fido { _private: () }
     }
 
-    pub fn new_device<S: Borrow<CStr>>(path: S) -> Result<Device, FidoError> {
+    pub fn new_device<S: Borrow<CStr>>(&self, path: S) -> Result<Device, FidoError> {
         // Allocate closed device
         let raw = unsafe { fido_dev_new() };
         assert!(!raw.is_null());
@@ -42,7 +42,7 @@ impl Fido {
         })
     }
 
-    pub fn detect_devices(max_length: usize) -> DeviceList {
+    pub fn detect_devices(&self, max_length: usize) -> DeviceList {
         // Allocate empty device list
         let device_list = unsafe { fido_dev_info_new(max_length) };
         assert!(!device_list.is_null());
