@@ -25,16 +25,71 @@ impl Fido {
     }
 
     pub fn new_device<S: Borrow<CStr>>(path: S) -> Result<Device, FidoError> {
+        // Allocate closed device
         let raw = unsafe { fido_dev_new() };
+        assert!(!raw.is_null());
+
+        // Try to open it
         let open_result = unsafe {
             fido_dev_open(raw, path.borrow().as_ptr())
         };
         if open_result != FIDO_OK {
             return Err(FidoError(open_result));
         }
+
         Ok(Device {
-            raw: NonNull::new(raw).expect("Unable to allocate memory for Device"),
+            raw: unsafe { NonNull::new_unchecked(raw) },
         })
+    }
+
+    pub fn detect_devices(max_length: usize) -> DeviceList {
+        // Allocate empty device list
+        let device_list = unsafe { fido_dev_info_new(max_length) };
+        assert!(!device_list.is_null());
+
+        // Fill list with found devices
+        let mut found_devices: usize = 0;
+        unsafe {
+            // Always returns FIDO_OK
+            let _ = fido_dev_info_manifest(device_list, max_length, &mut found_devices as *mut _);
+        }
+
+        DeviceList {
+            raw: unsafe { NonNull::new_unchecked(device_list) },
+            length: max_length,
+            found: found_devices
+        }
+    }
+}
+
+pub struct DeviceList {
+    raw: NonNull<fido_dev_info>,
+    length: usize,
+    found: usize
+}
+
+impl DeviceList {
+    pub fn iter_paths<'a>(&'a self) -> impl Iterator<Item = &'a str> {
+        (0..self.found).map(|i| {
+            unsafe {
+                let device_info = fido_dev_info_ptr(self.raw.as_ptr(), i);
+                assert!(!device_info.is_null());
+
+                let device_path = fido_dev_info_path(device_info);
+                assert!(!device_path.is_null());
+                CStr::from_ptr(device_path).to_str().expect("Path contains invalid UTF-8")
+            }
+        })
+    }
+}
+
+impl Drop for DeviceList {
+    fn drop(&mut self) {
+        let mut raw = self.raw.as_ptr();
+        unsafe {
+            fido_dev_info_free(&mut raw as *mut _, self.length);
+        }
+        assert!(raw.is_null(), "DeviceList was not freed");
     }
 }
 
@@ -49,8 +104,8 @@ impl Drop for Device {
             // This can return an error
             let _ = fido_dev_close(raw);
             fido_dev_free(&mut raw as *mut _);
-            assert!(raw.is_null(), "Device was not freed");
         }
+        assert!(raw.is_null(), "Device was not freed");
     }
 }
 
