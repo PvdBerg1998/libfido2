@@ -68,17 +68,41 @@ pub struct DeviceList {
     found: usize
 }
 
+#[derive(Clone, PartialEq, Eq)]
+pub struct ProductInformation<'a> {
+    pub path: &'a CStr,
+    pub product_id: i16,
+    pub vendor_id: i16,
+    pub manufacturer: &'a CStr,
+    pub product: &'a CStr
+}
+
 impl DeviceList {
-    pub fn iter_paths<'a>(&'a self) -> impl Iterator<Item = &'a CStr> {
+    pub fn iter_info<'a>(&'a self) -> impl Iterator<Item = ProductInformation<'a>> {
         let device_list = self.raw.as_ptr();
         (0..self.found).map(move |i| {
             unsafe {
                 let device_info = fido_dev_info_ptr(device_list, i);
                 assert!(!device_info.is_null());
 
-                let device_path = fido_dev_info_path(device_info);
-                assert!(!device_path.is_null());
-                CStr::from_ptr(device_path)
+                let path = fido_dev_info_path(device_info);
+                assert!(!path.is_null());
+                let path = CStr::from_ptr(path);
+
+                let product_id = fido_dev_info_product(device_info);
+                let vendor_id = fido_dev_info_vendor(device_info);
+
+                let manufacturer = fido_dev_info_manufacturer_string(device_info);
+                assert!(!manufacturer.is_null());
+                let manufacturer = CStr::from_ptr(manufacturer);
+
+                let product = fido_dev_info_product_string(device_info);
+                assert!(!product.is_null());
+                let product = CStr::from_ptr(product);
+
+                ProductInformation {
+                    path, product_id, vendor_id, manufacturer, product
+                }
             }
         })
     }
