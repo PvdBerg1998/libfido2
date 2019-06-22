@@ -3,6 +3,7 @@ name = "libfido2"
 version = "0.1.0"
 authors = ["PvdBerg1998 <PvdBerg1998@users.noreply.github.com>"]
 edition = "2018"
+build = "build.rs"
 
 [lib]
 name = "libfido2"
