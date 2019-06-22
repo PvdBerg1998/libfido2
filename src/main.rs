@@ -2,5 +2,8 @@ use libfido2::Fido;
 
 pub fn main() {
     let fido = Fido::new();
-    fido.detect_devices(10).iter_paths().for_each(|path| println!("Found path: {}", path));
+    let detected_devices = fido.detect_devices(1);
+    let path = detected_devices.iter_paths().next().unwrap();
+    println!("Found device: {}", path.to_string_lossy());
+    let device = fido.new_device(path).unwrap();
 }

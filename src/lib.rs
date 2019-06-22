@@ -18,7 +18,7 @@ impl Fido {
     pub fn new() -> Self {
         LIB_INITIALIZED.call_once(|| unsafe {
             // Argument can be 0 for no debugging, or FIDO_DEBUG for debugging
-            fido_init(FIDO_DEBUG);
+            fido_init(0);
         });
 
         Fido { _private: () }
@@ -69,7 +69,7 @@ pub struct DeviceList {
 }
 
 impl DeviceList {
-    pub fn iter_paths<'a>(&'a self) -> impl Iterator<Item = &'a str> {
+    pub fn iter_paths<'a>(&'a self) -> impl Iterator<Item = &'a CStr> {
         let device_list = self.raw.as_ptr();
         (0..self.found).map(move |i| {
             unsafe {
@@ -78,7 +78,7 @@ impl DeviceList {
 
                 let device_path = fido_dev_info_path(device_info);
                 assert!(!device_path.is_null());
-                CStr::from_ptr(device_path).to_str().expect("Path contains invalid UTF-8")
+                CStr::from_ptr(device_path)
             }
         })
     }
