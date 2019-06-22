@@ -70,9 +70,10 @@ pub struct DeviceList {
 
 impl DeviceList {
     pub fn iter_paths<'a>(&'a self) -> impl Iterator<Item = &'a str> {
-        (0..self.found).map(|i| {
+        let device_list = self.raw.as_ptr();
+        (0..self.found).map(move |i| {
             unsafe {
-                let device_info = fido_dev_info_ptr(self.raw.as_ptr(), i);
+                let device_info = fido_dev_info_ptr(device_list, i);
                 assert!(!device_info.is_null());
 
                 let device_path = fido_dev_info_path(device_info);
@@ -85,11 +86,11 @@ impl DeviceList {
 
 impl Drop for DeviceList {
     fn drop(&mut self) {
-        let mut raw = self.raw.as_ptr();
+        let mut device_list = self.raw.as_ptr();
         unsafe {
-            fido_dev_info_free(&mut raw as *mut _, self.length);
+            fido_dev_info_free(&mut device_list as *mut _, self.length);
         }
-        assert!(raw.is_null(), "DeviceList was not freed");
+        assert!(device_list.is_null(), "DeviceList was not freed");
     }
 }
 
@@ -99,13 +100,13 @@ pub struct Device {
 
 impl Drop for Device {
     fn drop(&mut self) {
-        let mut raw = self.raw.as_ptr();
+        let mut device = self.raw.as_ptr();
         unsafe {
             // This can return an error
-            let _ = fido_dev_close(raw);
-            fido_dev_free(&mut raw as *mut _);
+            let _ = fido_dev_close(device);
+            fido_dev_free(&mut device as *mut _);
         }
-        assert!(raw.is_null(), "Device was not freed");
+        assert!(device.is_null(), "Device was not freed");
     }
 }
 
