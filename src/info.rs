@@ -1,7 +1,7 @@
 use libfido2_sys::*;
 use std::{ffi::CStr, ptr::NonNull};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct DeviceList {
     pub(crate) raw: NonNull<fido_dev_info>,
     pub(crate) length: usize,

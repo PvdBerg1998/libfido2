@@ -2,7 +2,7 @@ use bitflags::bitflags;
 use libfido2_sys::*;
 use std::ptr::NonNull;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct Device {
     pub(crate) raw: NonNull<fido_dev>,
 }
@@ -48,7 +48,7 @@ impl Drop for Device {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CTAPHIDInfo {
     pub protocol: u8,
     pub major: u8,
