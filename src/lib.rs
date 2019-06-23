@@ -1,9 +1,12 @@
+#![allow(dead_code)]
+
+pub mod device;
+pub mod info;
+
+use device::Device;
+use info::DeviceList;
 use libfido2_sys::*;
-use std::ptr::NonNull;
-use std::sync::Once;
-use std::ffi::CStr;
-use std::borrow::Borrow;
-use std::os::raw;
+use std::{borrow::Borrow, ffi::CStr, os::raw, ptr::NonNull, sync::Once};
 
 const FIDO_DEBUG: raw::c_int = libfido2_sys::FIDO_DEBUG as raw::c_int;
 const FIDO_OK: raw::c_int = libfido2_sys::FIDO_OK as raw::c_int;
@@ -30,9 +33,7 @@ impl Fido {
         assert!(!raw.is_null());
 
         // Try to open it
-        let open_result = unsafe {
-            fido_dev_open(raw, path.borrow().as_ptr())
-        };
+        let open_result = unsafe { fido_dev_open(raw, path.borrow().as_ptr()) };
         if open_result != FIDO_OK {
             return Err(FidoError(open_result));
         }
@@ -57,80 +58,8 @@ impl Fido {
         DeviceList {
             raw: unsafe { NonNull::new_unchecked(device_list) },
             length: max_length,
-            found: found_devices
+            found: found_devices,
         }
-    }
-}
-
-pub struct DeviceList {
-    raw: NonNull<fido_dev_info>,
-    length: usize,
-    found: usize
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub struct ProductInformation<'a> {
-    pub path: &'a CStr,
-    pub product_id: i16,
-    pub vendor_id: i16,
-    pub manufacturer: &'a CStr,
-    pub product: &'a CStr
-}
-
-impl DeviceList {
-    pub fn iter_info<'a>(&'a self) -> impl Iterator<Item = ProductInformation<'a>> {
-        let device_list = self.raw.as_ptr();
-        (0..self.found).map(move |i| {
-            unsafe {
-                let device_info = fido_dev_info_ptr(device_list, i);
-                assert!(!device_info.is_null());
-
-                let path = fido_dev_info_path(device_info);
-                assert!(!path.is_null());
-                let path = CStr::from_ptr(path);
-
-                let product_id = fido_dev_info_product(device_info);
-                let vendor_id = fido_dev_info_vendor(device_info);
-
-                let manufacturer = fido_dev_info_manufacturer_string(device_info);
-                assert!(!manufacturer.is_null());
-                let manufacturer = CStr::from_ptr(manufacturer);
-
-                let product = fido_dev_info_product_string(device_info);
-                assert!(!product.is_null());
-                let product = CStr::from_ptr(product);
-
-                ProductInformation {
-                    path, product_id, vendor_id, manufacturer, product
-                }
-            }
-        })
-    }
-}
-
-impl Drop for DeviceList {
-    fn drop(&mut self) {
-        let mut device_list = self.raw.as_ptr();
-        unsafe {
-            fido_dev_info_free(&mut device_list as *mut _, self.length);
-        }
-        assert!(device_list.is_null(), "DeviceList was not freed");
-    }
-}
-
-pub struct Device {
-    raw: NonNull<fido_dev>,
-}
-
-impl Drop for Device {
-    fn drop(&mut self) {
-        let mut device = self.raw.as_ptr();
-        unsafe {
-            // This can return an error
-            let _ = fido_dev_close(device);
-            fido_dev_free(&mut device as *mut _);
-        }
-        assert!(device.is_null(), "Device was not freed");
     }
 }
 
