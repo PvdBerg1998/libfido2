@@ -12,6 +12,13 @@ pub fn main() {
         info.path.to_string_lossy(),
         info.product.to_string_lossy()
     );
-    let device = fido.new_device(info.path).expect("Unable to open device");
-    println!("CTAPHID info of device: {:?}", device.ctap_hid_info());
+    let mut device = fido.new_device(info.path).expect("Unable to open device");
+    println!("CTAPHID info: {:#?}", device.ctap_hid_info());
+    println!(
+        "CBOR info: {:#?}",
+        device
+            .request_cbor_data()
+            .expect("Unable to request CBOR info")
+            .info()
+    );
 }
