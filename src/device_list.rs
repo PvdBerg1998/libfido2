@@ -9,12 +9,14 @@ pub struct DeviceList {
 }
 
 impl DeviceList {
-    pub fn iter_info<'a>(&'a self) -> impl Iterator<Item = ProductInformation<'a>> {
+    pub fn iter_info<'a>(&'a self) -> impl Iterator<Item = DeviceInformation<'a>> {
         let device_list = self.raw.as_ptr();
         (0..self.found).map(move |i| unsafe {
+            // Obtain pointer to entry in list (0 based)
             let device_info = fido_dev_info_ptr(device_list, i);
             assert!(!device_info.is_null());
 
+            // Acquire information from this entry
             let path = fido_dev_info_path(device_info);
             assert!(!path.is_null());
             let path = CStr::from_ptr(path);
@@ -30,7 +32,7 @@ impl DeviceList {
             assert!(!product.is_null());
             let product = CStr::from_ptr(product);
 
-            ProductInformation {
+            DeviceInformation {
                 path,
                 product_id,
                 vendor_id,
@@ -46,16 +48,16 @@ unsafe impl Sync for DeviceList {}
 
 impl Drop for DeviceList {
     fn drop(&mut self) {
-        let mut device_list = self.raw.as_ptr();
         unsafe {
+            let mut device_list = self.raw.as_ptr();
             fido_dev_info_free(&mut device_list as *mut _, self.length);
+            assert!(device_list.is_null());
         }
-        assert!(device_list.is_null(), "DeviceList was not freed");
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct ProductInformation<'a> {
+pub struct DeviceInformation<'a> {
     pub path: &'a CStr,
     pub product_id: i16,
     pub vendor_id: i16,

@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 
+pub mod cbor_info;
 pub mod device;
-pub mod info;
+pub mod device_list;
 
 use device::Device;
-use info::DeviceList;
+use device_list::DeviceList;
 use libfido2_sys::*;
 use std::{
     borrow::Borrow,
@@ -20,6 +21,9 @@ const FIDO_OK: raw::c_int = libfido2_sys::FIDO_OK as raw::c_int;
 
 static LIB_INITIALIZED: Once = Once::new();
 
+type Result<T> = std::result::Result<T, FidoError>;
+
+// Use a struct with methods to make sure `fido_init` gets called
 pub struct Fido {
     _private: (),
 }
@@ -34,38 +38,44 @@ impl Fido {
         Fido { _private: () }
     }
 
-    pub fn new_device<S: Borrow<CStr>>(&self, path: S) -> Result<Device, FidoError> {
-        // Allocate closed device
-        let raw = unsafe { fido_dev_new() };
-        assert!(!raw.is_null());
+    pub fn new_device<S: Borrow<CStr>>(&self, path: S) -> Result<Device> {
+        unsafe {
+            // Allocate closed device
+            let device = Device {
+                raw: NonNull::new(fido_dev_new()).unwrap(),
+            };
 
-        // Try to open it
-        let open_result = unsafe { fido_dev_open(raw, path.borrow().as_ptr()) };
-        if open_result != FIDO_OK {
-            return Err(FidoError(open_result));
+            // Try to open the device
+            let open_result = fido_dev_open(device.raw.as_ptr(), path.borrow().as_ptr());
+            if open_result != FIDO_OK {
+                return Err(FidoError(open_result));
+            }
+
+            Ok(device)
         }
-
-        Ok(Device {
-            raw: unsafe { NonNull::new_unchecked(raw) },
-        })
     }
 
     pub fn detect_devices(&self, max_length: usize) -> DeviceList {
-        // Allocate empty device list
-        let device_list = unsafe { fido_dev_info_new(max_length) };
-        assert!(!device_list.is_null());
-
-        // Fill list with found devices
-        let mut found_devices: usize = 0;
         unsafe {
-            // Always returns FIDO_OK
-            let _ = fido_dev_info_manifest(device_list, max_length, &mut found_devices as *mut _);
-        }
+            // Allocate empty device list
+            let mut device_list = DeviceList {
+                raw: NonNull::new(fido_dev_info_new(max_length)).unwrap(),
+                length: max_length,
+                found: 0,
+            };
 
-        DeviceList {
-            raw: unsafe { NonNull::new_unchecked(device_list) },
-            length: max_length,
-            found: found_devices,
+            // Fill list with found devices
+            // This should always return FIDO_OK
+            assert_eq!(
+                fido_dev_info_manifest(
+                    device_list.raw.as_ptr(),
+                    max_length,
+                    &mut device_list.found as *mut _
+                ),
+                FIDO_OK
+            );
+
+            device_list
         }
     }
 }

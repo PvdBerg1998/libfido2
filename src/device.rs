@@ -1,3 +1,4 @@
+use crate::{cbor_info::CBORInformation, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
 use std::ptr::NonNull;
@@ -15,12 +16,13 @@ impl Device {
     pub fn ctap_hid_info(&self) -> CTAPHIDInfo {
         unsafe {
             let device = self.raw.as_ptr();
+
             let protocol = fido_dev_protocol(device);
             let major = fido_dev_major(device);
             let minor = fido_dev_minor(device);
             let build = fido_dev_build(device);
             let flags = fido_dev_flags(device);
-            let flags = CTAPHIDCapabilities::from_bits(flags).expect("Invalid capability flags");
+            let flags = CTAPHIDCapabilities::from_bits_truncate(flags);
 
             CTAPHIDInfo {
                 protocol,
@@ -31,6 +33,24 @@ impl Device {
             }
         }
     }
+
+    pub fn cbor_info(&mut self) -> Result<CBORInformation> {
+        unsafe {
+            // Allocate empty CBOR info
+            let cbor_info = CBORInformation {
+                raw: NonNull::new(fido_cbor_info_new()).unwrap(),
+            };
+
+            // Request CBOR information
+            // NB. This requires a *mut Device, so we require &mut self
+            let result = fido_dev_get_cbor_info(self.raw.as_ptr(), cbor_info.raw.as_ptr());
+            if result != FIDO_OK {
+                return Err(FidoError(result));
+            }
+
+            Ok(cbor_info)
+        }
+    }
 }
 
 unsafe impl Send for Device {}
@@ -38,13 +58,14 @@ unsafe impl Sync for Device {}
 
 impl Drop for Device {
     fn drop(&mut self) {
-        let mut device = self.raw.as_ptr();
         unsafe {
+            let mut device = self.raw.as_ptr();
             // This can return an error
+            // If we are not opened yet, this is a NOOP
             let _ = fido_dev_close(device);
             fido_dev_free(&mut device as *mut _);
+            assert!(device.is_null());
         }
-        assert!(device.is_null(), "Device was not freed");
     }
 }
 
@@ -59,8 +80,8 @@ pub struct CTAPHIDInfo {
 
 bitflags! {
     pub struct CTAPHIDCapabilities: u8 {
-        const WINK = FIDO_CAP_WINK as u8;
         const CBOR = FIDO_CAP_CBOR as u8;
         const NMSG = FIDO_CAP_NMSG as u8;
+        const WINK = FIDO_CAP_WINK as u8;
     }
 }
