@@ -54,7 +54,7 @@ impl Drop for DeviceList {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct ProductInformation<'a> {
     pub path: &'a CStr,
     pub product_id: i16,
