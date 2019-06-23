@@ -1,4 +1,4 @@
-use crate::{cbor_info::CBORInformation, FidoError, Result, FIDO_OK};
+use crate::{cbor_info::CBORData, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
 use std::ptr::NonNull;
@@ -34,10 +34,10 @@ impl Device {
         }
     }
 
-    pub fn cbor_info(&mut self) -> Result<CBORInformation> {
+    pub fn request_cbor_data(&mut self) -> Result<CBORData> {
         unsafe {
-            // Allocate empty CBOR info
-            let cbor_info = CBORInformation {
+            // Allocate empty CBOR info (called CBORData since the information has its own wrapper struct)
+            let cbor_info = CBORData {
                 raw: NonNull::new(fido_cbor_info_new()).unwrap(),
             };
 
