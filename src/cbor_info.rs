@@ -15,34 +15,34 @@ impl CBORData {
 
             let aag_uid = fido_cbor_info_aaguid_ptr(cbor_info);
             let aag_uid = if aag_uid.is_null() {
-                None
+                &[]
             } else {
                 let len = fido_cbor_info_aaguid_len(cbor_info);
-                Some(slice::from_raw_parts(aag_uid, len))
+                slice::from_raw_parts(aag_uid, len)
             };
 
             let pin_protocols = fido_cbor_info_protocols_ptr(cbor_info);
             let pin_protocols = if pin_protocols.is_null() {
-                None
+                &[]
             } else {
                 let len = fido_cbor_info_protocols_len(cbor_info);
-                Some(slice::from_raw_parts(pin_protocols, len))
+                slice::from_raw_parts(pin_protocols, len)
             };
 
             let extensions = fido_cbor_info_extensions_ptr(cbor_info);
             let extensions = if extensions.is_null() {
-                None
+                Box::new([])
             } else {
                 let len = fido_cbor_info_extensions_len(cbor_info);
-                Some(convert_cstr_array_ptr(extensions, len))
+                convert_cstr_array_ptr(extensions, len)
             };
 
             let ctap_versions = fido_cbor_info_versions_ptr(cbor_info);
             let ctap_versions = if ctap_versions.is_null() {
-                None
+                Box::new([])
             } else {
                 let len = fido_cbor_info_versions_len(cbor_info);
-                Some(convert_cstr_array_ptr(ctap_versions, len))
+                convert_cstr_array_ptr(ctap_versions, len)
             };
 
             let option_names = fido_cbor_info_options_name_ptr(cbor_info);
@@ -98,9 +98,9 @@ impl Drop for CBORData {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CBORInformation<'a> {
-    pub aag_uid: Option<&'a [u8]>,
-    pub pin_protocols: Option<&'a [u8]>,
-    pub extensions: Option<Box<[&'a CStr]>>,
-    pub ctap_versions: Option<Box<[&'a CStr]>>,
+    pub aag_uid: &'a [u8],
+    pub pin_protocols: &'a [u8],
+    pub extensions: Box<[&'a CStr]>,
+    pub ctap_versions: Box<[&'a CStr]>,
     pub options: HashMap<&'a CStr, bool>,
 }
