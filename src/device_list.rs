@@ -1,3 +1,4 @@
+use crate::device::DevicePath;
 use libfido2_sys::*;
 use std::{ffi::CStr, ptr::NonNull};
 
@@ -19,18 +20,18 @@ impl DeviceList {
             // Acquire information from this entry
             let path = fido_dev_info_path(device_info);
             assert!(!path.is_null());
-            let path = CStr::from_ptr(path);
+            let path = DevicePath(CStr::from_ptr(path));
 
             let product_id = fido_dev_info_product(device_info);
             let vendor_id = fido_dev_info_vendor(device_info);
 
             let manufacturer = fido_dev_info_manufacturer_string(device_info);
             assert!(!manufacturer.is_null());
-            let manufacturer = CStr::from_ptr(manufacturer);
+            let manufacturer = CStr::from_ptr(manufacturer).to_str().unwrap();
 
             let product = fido_dev_info_product_string(device_info);
             assert!(!product.is_null());
-            let product = CStr::from_ptr(product);
+            let product = CStr::from_ptr(product).to_str().unwrap();
 
             DeviceInformation {
                 path,
@@ -56,11 +57,11 @@ impl Drop for DeviceList {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct DeviceInformation<'a> {
-    pub path: &'a CStr,
+    pub path: DevicePath<'a>,
     pub product_id: i16,
     pub vendor_id: i16,
-    pub manufacturer: &'a CStr,
-    pub product: &'a CStr,
+    pub manufacturer: &'a str,
+    pub product: &'a str,
 }

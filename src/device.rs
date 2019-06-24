@@ -1,7 +1,7 @@
 use crate::{cbor_info::CBORData, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::ptr::NonNull;
+use std::{ffi::CStr, ptr::NonNull};
 
 #[derive(PartialEq, Eq)]
 pub struct Device {
@@ -69,7 +69,16 @@ impl Drop for Device {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct DevicePath<'a>(pub(crate) &'a CStr);
+
+impl DevicePath<'_> {
+    pub fn to_str(&self) -> &str {
+        self.0.to_str().unwrap()
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CTAPHIDInfo {
     pub protocol: u8,
     pub major: u8,

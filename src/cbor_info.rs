@@ -75,14 +75,14 @@ impl CBORData {
     }
 }
 
-unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box<[&'a CStr]> {
+unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box<[&'a str]> {
     slice::from_raw_parts(array, len)
         .iter()
         .map(|ptr| {
             assert!(!ptr.is_null());
-            CStr::from_ptr(*ptr)
+            CStr::from_ptr(*ptr).to_str().unwrap()
         })
-        .collect::<Vec<&'a CStr>>()
+        .collect::<Vec<&'a str>>()
         .into_boxed_slice()
 }
 
@@ -100,7 +100,7 @@ impl Drop for CBORData {
 pub struct CBORInformation<'a> {
     pub aag_uid: &'a [u8],
     pub pin_protocols: &'a [u8],
-    pub extensions: Box<[&'a CStr]>,
-    pub ctap_versions: Box<[&'a CStr]>,
-    pub options: HashMap<&'a CStr, bool>,
+    pub extensions: Box<[&'a str]>,
+    pub ctap_versions: Box<[&'a str]>,
+    pub options: HashMap<&'a str, bool>,
 }

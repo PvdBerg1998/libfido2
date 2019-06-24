@@ -7,11 +7,7 @@ pub fn main() {
         .iter_info()
         .next()
         .expect("No device found");
-    println!(
-        "Found device at {}: {}",
-        info.path.to_string_lossy(),
-        info.product.to_string_lossy()
-    );
+    println!("Found device at {}: {}", info.path.to_str(), info.product);
     let mut device = fido.new_device(info.path).expect("Unable to open device");
     println!("CTAPHID info: {:#?}", device.ctap_hid_info());
     println!(

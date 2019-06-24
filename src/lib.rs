@@ -4,11 +4,10 @@ pub mod cbor_info;
 pub mod device;
 pub mod device_list;
 
-use device::Device;
+use device::{Device, DevicePath};
 use device_list::DeviceList;
 use libfido2_sys::*;
 use std::{
-    borrow::Borrow,
     ffi::CStr,
     fmt::{self, Debug},
     os::raw,
@@ -38,7 +37,7 @@ impl Fido {
         Fido { _private: () }
     }
 
-    pub fn new_device<S: Borrow<CStr>>(&self, path: S) -> Result<Device> {
+    pub fn new_device(&self, path: DevicePath<'_>) -> Result<Device> {
         unsafe {
             // Allocate closed device
             let device = Device {
@@ -46,7 +45,7 @@ impl Fido {
             };
 
             // Try to open the device
-            let open_result = fido_dev_open(device.raw.as_ptr(), path.borrow().as_ptr());
+            let open_result = fido_dev_open(device.raw.as_ptr(), path.0.as_ptr());
             if open_result != FIDO_OK {
                 return Err(FidoError(open_result));
             }
