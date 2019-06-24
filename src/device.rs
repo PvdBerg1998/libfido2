@@ -72,7 +72,11 @@ impl Drop for Device {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct DevicePath<'a>(pub(crate) &'a CStr);
 
-impl DevicePath<'_> {
+impl<'a> DevicePath<'a> {
+    pub fn from_cstr(s: &'a CStr) -> Self {
+        DevicePath(s)
+    }
+
     pub fn to_str(&self) -> &str {
         self.0.to_str().unwrap()
     }
