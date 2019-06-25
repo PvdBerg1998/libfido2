@@ -7,14 +7,7 @@ pub mod device_list;
 use device::{Device, DevicePath};
 use device_list::DeviceList;
 use libfido2_sys::*;
-use std::{
-    ffi::CStr,
-    fmt::{self, Debug},
-    os::raw,
-    ptr::NonNull,
-    str,
-    sync::Once,
-};
+use std::{error, ffi::CStr, fmt, os::raw, ptr::NonNull, str, sync::Once};
 
 const FIDO_DEBUG: raw::c_int = libfido2_sys::FIDO_DEBUG as raw::c_int;
 const FIDO_OK: raw::c_int = libfido2_sys::FIDO_OK as raw::c_int;
@@ -80,10 +73,12 @@ impl Fido {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct FidoError(raw::c_int);
 
-impl Debug for FidoError {
+impl error::Error for FidoError {}
+
+impl fmt::Display for FidoError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
             let error_str = fido_strerr(self.0);

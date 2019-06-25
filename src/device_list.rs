@@ -10,7 +10,7 @@ pub struct DeviceList {
 }
 
 impl DeviceList {
-    pub fn iter_info<'a>(&'a self) -> impl Iterator<Item = DeviceInformation<'a>> {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = DeviceInformation<'a>> {
         let device_list = self.raw.as_ptr();
         (0..self.found).map(move |i| unsafe {
             // Obtain pointer to entry in list (0 based)
