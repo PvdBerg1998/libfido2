@@ -3,11 +3,13 @@
 pub mod cbor_info;
 pub mod device;
 pub mod device_list;
+mod nonnull;
 
 use device::{Device, DevicePath};
 use device_list::DeviceList;
 use libfido2_sys::*;
-use std::{error, ffi::CStr, fmt, os::raw, ptr::NonNull, str, sync::Once};
+use nonnull::NonNull;
+use std::{error, ffi::CStr, fmt, os::raw, str, sync::Once};
 
 const FIDO_DEBUG: raw::c_int = libfido2_sys::FIDO_DEBUG as raw::c_int;
 const FIDO_OK: raw::c_int = libfido2_sys::FIDO_OK as raw::c_int;
@@ -34,12 +36,12 @@ impl Fido {
     pub fn new_device(&self, path: DevicePath<'_>) -> Result<Device> {
         unsafe {
             // Allocate closed device
-            let device = Device {
+            let mut device = Device {
                 raw: NonNull::new(fido_dev_new()).unwrap(),
             };
 
             // Try to open the device
-            let open_result = fido_dev_open(device.raw.as_ptr(), path.0.as_ptr());
+            let open_result = fido_dev_open(device.raw.as_ptr_mut(), path.0.as_ptr());
             if open_result != FIDO_OK {
                 return Err(FidoError(open_result));
             }
@@ -61,7 +63,7 @@ impl Fido {
             // This should always return FIDO_OK
             assert_eq!(
                 fido_dev_info_manifest(
-                    device_list.raw.as_ptr(),
+                    device_list.raw.as_ptr_mut(),
                     max_length,
                     &mut device_list.found as *mut _
                 ),

@@ -1,7 +1,6 @@
+use crate::nonnull::NonNull;
 use libfido2_sys::*;
-use std::{
-    collections::HashMap, ffi::CStr, iter::FromIterator, os::raw::c_char, ptr::NonNull, slice, str,
-};
+use std::{collections::HashMap, ffi::CStr, iter::FromIterator, os::raw::c_char, slice, str};
 
 #[derive(PartialEq, Eq)]
 pub struct CBORData {
@@ -89,7 +88,7 @@ unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box
 impl Drop for CBORData {
     fn drop(&mut self) {
         unsafe {
-            let mut cbor_info = self.raw.as_ptr();
+            let mut cbor_info = self.raw.as_ptr_mut();
             fido_cbor_info_free(&mut cbor_info as *mut _);
             assert!(cbor_info.is_null());
         }

@@ -1,6 +1,6 @@
-use crate::device::DevicePath;
+use crate::{device::DevicePath, nonnull::NonNull};
 use libfido2_sys::*;
-use std::{ffi::CStr, ptr::NonNull, str};
+use std::{ffi::CStr, str};
 
 #[derive(PartialEq, Eq)]
 pub struct DeviceList {
@@ -50,7 +50,7 @@ unsafe impl Sync for DeviceList {}
 impl Drop for DeviceList {
     fn drop(&mut self) {
         unsafe {
-            let mut device_list = self.raw.as_ptr();
+            let mut device_list = self.raw.as_ptr_mut();
             fido_dev_info_free(&mut device_list as *mut _, self.length);
             assert!(device_list.is_null());
         }

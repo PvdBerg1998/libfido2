@@ -1,7 +1,7 @@
-use crate::{cbor_info::CBORData, FidoError, Result, FIDO_OK};
+use crate::{cbor_info::CBORData, nonnull::NonNull, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{ffi::CStr, ptr::NonNull, str};
+use std::{ffi::CStr, str};
 
 #[derive(PartialEq, Eq)]
 pub struct Device {
@@ -37,19 +37,22 @@ impl Device {
     pub fn request_cbor_data(&mut self) -> Result<CBORData> {
         unsafe {
             // Allocate empty CBOR info (called CBORData since the information has its own wrapper struct)
-            let cbor_info = CBORData {
+            let mut cbor_info = CBORData {
                 raw: NonNull::new(fido_cbor_info_new()).unwrap(),
             };
 
             // Request CBOR information
-            // NB. This requires a *mut Device, so we require &mut self
-            let result = fido_dev_get_cbor_info(self.raw.as_ptr(), cbor_info.raw.as_ptr());
+            let result = fido_dev_get_cbor_info(self.raw.as_ptr_mut(), cbor_info.raw.as_ptr_mut());
             if result != FIDO_OK {
                 return Err(FidoError(result));
             }
 
             Ok(cbor_info)
         }
+    }
+
+    pub fn set_pin(&mut self, pin: &CStr) -> Result<()> {
+        unsafe { unimplemented!() }
     }
 }
 
@@ -59,7 +62,7 @@ unsafe impl Sync for Device {}
 impl Drop for Device {
     fn drop(&mut self) {
         unsafe {
-            let mut device = self.raw.as_ptr();
+            let mut device = self.raw.as_ptr_mut();
             // This can return an error
             // If we are not opened yet, this is a NOOP
             let _ = fido_dev_close(device);
