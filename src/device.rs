@@ -1,7 +1,7 @@
 use crate::{cbor_info::CBORData, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{ffi::CStr, ptr::NonNull};
+use std::{ffi::CStr, ptr::NonNull, str};
 
 #[derive(PartialEq, Eq)]
 pub struct Device {
@@ -78,7 +78,7 @@ impl<'a> DevicePath<'a> {
     }
 
     pub fn to_str(&self) -> &str {
-        self.0.to_str().unwrap()
+        unsafe { str::from_utf8_unchecked(self.0.to_bytes()) }
     }
 }
 

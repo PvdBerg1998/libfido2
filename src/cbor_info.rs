@@ -1,6 +1,6 @@
 use libfido2_sys::*;
 use std::{
-    collections::HashMap, ffi::CStr, iter::FromIterator, os::raw::c_char, ptr::NonNull, slice,
+    collections::HashMap, ffi::CStr, iter::FromIterator, os::raw::c_char, ptr::NonNull, slice, str,
 };
 
 #[derive(PartialEq, Eq)]
@@ -80,7 +80,7 @@ unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box
         .iter()
         .map(|ptr| {
             assert!(!ptr.is_null());
-            CStr::from_ptr(*ptr).to_str().unwrap()
+            str::from_utf8_unchecked(CStr::from_ptr(*ptr).to_bytes())
         })
         .collect::<Vec<&'a str>>()
         .into_boxed_slice()

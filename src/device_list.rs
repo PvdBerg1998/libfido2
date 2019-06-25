@@ -1,6 +1,6 @@
 use crate::device::DevicePath;
 use libfido2_sys::*;
-use std::{ffi::CStr, ptr::NonNull};
+use std::{ffi::CStr, ptr::NonNull, str};
 
 #[derive(PartialEq, Eq)]
 pub struct DeviceList {
@@ -27,11 +27,11 @@ impl DeviceList {
 
             let manufacturer = fido_dev_info_manufacturer_string(device_info);
             assert!(!manufacturer.is_null());
-            let manufacturer = CStr::from_ptr(manufacturer).to_str().unwrap();
+            let manufacturer = str::from_utf8_unchecked(CStr::from_ptr(manufacturer).to_bytes());
 
             let product = fido_dev_info_product_string(device_info);
             assert!(!product.is_null());
-            let product = CStr::from_ptr(product).to_str().unwrap();
+            let product = str::from_utf8_unchecked(CStr::from_ptr(product).to_bytes());
 
             DeviceInformation {
                 path,

@@ -12,6 +12,7 @@ use std::{
     fmt::{self, Debug},
     os::raw,
     ptr::NonNull,
+    str,
     sync::Once,
 };
 
@@ -87,7 +88,9 @@ impl Debug for FidoError {
         unsafe {
             let error_str = fido_strerr(self.0);
             assert!(!error_str.is_null());
-            f.write_str(CStr::from_ptr(error_str).to_str().unwrap())
+            f.write_str(str::from_utf8_unchecked(
+                CStr::from_ptr(error_str).to_bytes(),
+            ))
         }
     }
 }
