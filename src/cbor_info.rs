@@ -2,12 +2,17 @@ use crate::nonnull::NonNull;
 use libfido2_sys::*;
 use std::{collections::HashMap, ffi::CStr, iter::FromIterator, os::raw::c_char, slice, str};
 
+/// Owns additional data stored as CBOR on a device.
 #[derive(PartialEq, Eq)]
 pub struct CBORData {
     pub(crate) raw: NonNull<fido_cbor_info>,
 }
 
 impl CBORData {
+    /// Creates a reference of the owned data.
+    ///
+    /// # Remarks
+    /// - This performs some FFI calls and data conversion and is not zero-cost.
     pub fn info<'a>(&'a self) -> CBORInformation<'a> {
         unsafe {
             let cbor_info = self.raw.as_ptr();
@@ -74,6 +79,11 @@ impl CBORData {
     }
 }
 
+/// Converts a `*mut *mut c_char` to a boxed array of `&str`s.
+///
+/// # Unsafety
+/// - The `array` pointer must be valid.
+/// - Contained strings must be valid UTF-8.
 unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box<[&'a str]> {
     slice::from_raw_parts(array, len)
         .iter()
@@ -85,6 +95,10 @@ unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box
         .into_boxed_slice()
 }
 
+// libfido2_sys guarantees this.
+unsafe impl Send for CBORData {}
+unsafe impl Sync for CBORData {}
+
 impl Drop for CBORData {
     fn drop(&mut self) {
         unsafe {
@@ -95,6 +109,7 @@ impl Drop for CBORData {
     }
 }
 
+/// Information stored as CBOR on a device.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CBORInformation<'a> {
     pub aag_uid: &'a [u8],

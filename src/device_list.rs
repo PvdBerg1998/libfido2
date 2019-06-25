@@ -2,6 +2,9 @@ use crate::{device::DevicePath, nonnull::NonNull};
 use libfido2_sys::*;
 use std::{ffi::CStr, str};
 
+/// Owns a list of [information] about found devices.
+///
+/// [information]: struct.DeviceInformation.html
 #[derive(PartialEq, Eq)]
 pub struct DeviceList {
     pub(crate) raw: NonNull<fido_dev_info>,
@@ -10,6 +13,9 @@ pub struct DeviceList {
 }
 
 impl DeviceList {
+    /// Creates an iterator over [information] about found devices.
+    ///
+    /// [information]: struct.DeviceInformation.html
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = DeviceInformation<'a>> {
         let device_list = self.raw.as_ptr();
         (0..self.found).map(move |i| unsafe {
@@ -44,6 +50,7 @@ impl DeviceList {
     }
 }
 
+// libfido2_sys guarantees this.
 unsafe impl Send for DeviceList {}
 unsafe impl Sync for DeviceList {}
 
@@ -57,6 +64,8 @@ impl Drop for DeviceList {
     }
 }
 
+/// Information about a found, not connected to, device.
+/// Contains OS-specific path, which can be used to connect to a device.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct DeviceInformation<'a> {
     pub path: DevicePath<'a>,

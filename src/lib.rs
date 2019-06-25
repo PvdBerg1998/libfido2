@@ -39,9 +39,6 @@ impl Fido {
 
     /// Opens a new [`Device`] located at [`path`].
     ///
-    /// # Arguments
-    /// `path`: The OS-specific path of the `Device`.
-    ///
     /// [`Device`]: struct.Device.html
     /// [`path`]: struct.DevicePath.html
     pub fn new_device(&self, path: DevicePath<'_>) -> Result<Device> {
@@ -62,7 +59,7 @@ impl Fido {
     /// Detects any connected FIDO2 devices and returns them as a [`DeviceList`].
     ///
     /// # Arguments
-    /// `max_length`: The maximum amount of devices to list.
+    /// - `max_length`: The maximum amount of devices to list.
     ///
     /// [`DeviceList`]: struct.DeviceList.html
     pub fn detect_devices(&self, max_length: usize) -> DeviceList {
@@ -90,6 +87,7 @@ impl Fido {
     }
 }
 
+/// Contains a FIDO2 error.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct FidoError(raw::c_int);
 
