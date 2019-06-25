@@ -11,7 +11,7 @@ Contributions welcome!
 - [x] Device detection
 - [x] Device creation
 - [x] Device CBOR information
-- [ ] Device setting management
+- [x] Device setting management
 - [ ] Credential management
 - [ ] FIDO2 assertions
 
