@@ -1,12 +1,14 @@
 #![allow(dead_code)]
 
-pub mod cbor_info;
-pub mod device;
-pub mod device_list;
+mod cbor_info;
+mod device;
+mod device_list;
 mod nonnull;
 
-use device::{Device, DevicePath};
-use device_list::DeviceList;
+pub use cbor_info::*;
+pub use device::*;
+pub use device_list::*;
+
 use libfido2_sys::*;
 use nonnull::NonNull;
 use std::{error, ffi::CStr, fmt, os::raw, str, sync::Once};
@@ -40,8 +42,8 @@ impl Fido {
     /// # Arguments
     /// `path`: The OS-specific path of the `Device`.
     ///
-    /// [`Device`]: device/struct.Device.html
-    /// [`path`]: device/struct.DevicePath.html
+    /// [`Device`]: struct.Device.html
+    /// [`path`]: struct.DevicePath.html
     pub fn new_device(&self, path: DevicePath<'_>) -> Result<Device> {
         unsafe {
             // Allocate closed device
@@ -62,7 +64,7 @@ impl Fido {
     /// # Arguments
     /// `max_length`: The maximum amount of devices to list.
     ///
-    /// [`DeviceList`]: device_list/struct.DeviceList.html
+    /// [`DeviceList`]: struct.DeviceList.html
     pub fn detect_devices(&self, max_length: usize) -> DeviceList {
         unsafe {
             // Allocate empty device list
