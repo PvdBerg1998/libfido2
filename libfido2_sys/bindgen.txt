@@ -1,0 +1,1 @@
+bindgen ./src/fido.h -o ../libfido2_sys/src/bindings.rs --whitelist-function '(?i)^fido_.*' --whitelist-type '(?i)^fido_.*' --whitelist-var '(?i)^fido_.*'
