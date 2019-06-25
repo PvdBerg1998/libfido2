@@ -18,12 +18,14 @@ static LIB_INITIALIZED: Once = Once::new();
 
 type Result<T> = std::result::Result<T, FidoError>;
 
-// Use a struct with methods to make sure `fido_init` gets called
+/// The entry point of the library.
+/// All access to FIDO2 dongles goes through methods of this struct.
 pub struct Fido {
     _private: (),
 }
 
 impl Fido {
+    /// Initializes the FIDO2 library.
     pub fn new() -> Self {
         LIB_INITIALIZED.call_once(|| unsafe {
             // Argument can be 0 for no debugging, or FIDO_DEBUG for debugging
@@ -33,6 +35,13 @@ impl Fido {
         Fido { _private: () }
     }
 
+    /// Opens a new [`Device`] located at [`path`].
+    ///
+    /// # Arguments
+    /// `path`: The OS-specific path of the `Device`.
+    ///
+    /// [`Device`]: device/struct.Device.html
+    /// [`path`]: device/struct.DevicePath.html
     pub fn new_device(&self, path: DevicePath<'_>) -> Result<Device> {
         unsafe {
             // Allocate closed device
@@ -48,6 +57,12 @@ impl Fido {
         }
     }
 
+    /// Detects any connected FIDO2 devices and returns them as a [`DeviceList`].
+    ///
+    /// # Arguments
+    /// `max_length`: The maximum amount of devices to list.
+    ///
+    /// [`DeviceList`]: device_list/struct.DeviceList.html
     pub fn detect_devices(&self, max_length: usize) -> DeviceList {
         unsafe {
             // Allocate empty device list
