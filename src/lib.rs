@@ -41,12 +41,10 @@ impl Fido {
             };
 
             // Try to open the device
-            let open_result = fido_dev_open(device.raw.as_ptr_mut(), path.0.as_ptr());
-            if open_result != FIDO_OK {
-                return Err(FidoError(open_result));
+            match fido_dev_open(device.raw.as_ptr_mut(), path.0.as_ptr()) {
+                FIDO_OK => Ok(device),
+                err => Err(FidoError(err)),
             }
-
-            Ok(device)
         }
     }
 

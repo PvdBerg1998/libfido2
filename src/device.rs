@@ -42,17 +42,39 @@ impl Device {
             };
 
             // Request CBOR information
-            let result = fido_dev_get_cbor_info(self.raw.as_ptr_mut(), cbor_info.raw.as_ptr_mut());
-            if result != FIDO_OK {
-                return Err(FidoError(result));
+            match fido_dev_get_cbor_info(self.raw.as_ptr_mut(), cbor_info.raw.as_ptr_mut()) {
+                FIDO_OK => Ok(cbor_info),
+                err => Err(FidoError(err)),
             }
-
-            Ok(cbor_info)
         }
     }
 
-    pub fn set_pin(&mut self, pin: &CStr) -> Result<()> {
-        unsafe { unimplemented!() }
+    pub fn set_pin(&mut self, new_pin: &CStr, old_pin: &CStr) -> Result<()> {
+        unsafe {
+            match fido_dev_set_pin(self.raw.as_ptr_mut(), new_pin.as_ptr(), old_pin.as_ptr()) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    pub fn reset(&mut self) -> Result<()> {
+        unsafe {
+            match fido_dev_reset(self.raw.as_ptr_mut()) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    pub fn retry_count(&mut self) -> Result<i32> {
+        unsafe {
+            let mut amount = 0;
+            match fido_dev_get_retry_count(self.raw.as_ptr_mut(), &mut amount as *mut _) {
+                FIDO_OK => Ok(amount),
+                err => Err(FidoError(err)),
+            }
+        }
     }
 }
 
