@@ -1,12 +1,21 @@
 [package]
 name = "libfido2"
+description = "A safe interface to the libfido2 c library."
 version = "0.1.0"
 authors = ["PvdBerg1998 <PvdBerg1998@users.noreply.github.com>"]
 edition = "2018"
+license-file = "LICENSE.txt"
+readme = "README.md"
+repository = "https://github.com/PvdBerg1998/libfido2"
+categories = ["authentication", "api-bindings", "cryptography", "hardware-support"]
+
+[badges]
+maintenance = { status = "actively-developed" }
 
 [workspace]
 [dependencies.libfido2_sys]
-path = "libfido2_sys"
+path = "./libfido2_sys"
+# TODO: publish FFI bindings as a crate
 
 [dependencies]
 bitflags = "^1.1.0"
