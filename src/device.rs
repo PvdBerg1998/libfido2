@@ -1,7 +1,9 @@
-use crate::{cbor_info::CBORData, ffi::NonNull, FidoError, Result, FIDO_OK};
+use crate::{
+    cbor_info::CBORData, ffi::NonNull, Credential, CredentialCreator, FidoError, Result, FIDO_OK,
+};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{convert::AsRef, ffi::CStr, str};
+use std::{convert::AsRef, ffi::CStr, ptr, str};
 
 /// Represents a connection to a FIDO2 device.
 #[derive(PartialEq, Eq)]
@@ -13,6 +15,15 @@ impl Device {
     /// Returns whether the device supports FIDO2.
     pub fn is_fido2(&self) -> bool {
         unsafe { fido_dev_is_fido2(self.raw.as_ptr()) }
+    }
+
+    pub fn force_mode(&mut self, mode: DeviceMode) {
+        unsafe {
+            match mode {
+                DeviceMode::Fido2 => fido_dev_force_fido2(self.raw.as_ptr_mut()),
+                DeviceMode::FidoU2F => fido_dev_force_u2f(self.raw.as_ptr_mut()),
+            }
+        }
     }
 
     /// Returns [CTAP HID information] about the device.
@@ -55,6 +66,27 @@ impl Device {
             // Request CBOR information
             match fido_dev_get_cbor_info(self.raw.as_ptr_mut(), cbor_info.raw.as_ptr_mut()) {
                 FIDO_OK => Ok(cbor_info),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    /// Requests the device to create a new credential.
+    ///
+    /// # Remarks
+    /// - This is synchronous and will block.
+    pub fn request_credential_creation(
+        &mut self,
+        mut credential: CredentialCreator,
+        pin: Option<&CStr>,
+    ) -> Result<Credential> {
+        unsafe {
+            match fido_dev_make_cred(
+                self.raw.as_ptr_mut(),
+                credential.0.raw.as_ptr_mut(),
+                pin.map(CStr::as_ptr).unwrap_or(ptr::null()),
+            ) {
+                FIDO_OK => Ok(credential.0),
                 err => Err(FidoError(err)),
             }
         }
@@ -149,6 +181,12 @@ impl AsRef<str> for DevicePath<'_> {
     fn as_ref(&self) -> &str {
         self.to_str()
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DeviceMode {
+    Fido2,
+    FidoU2F,
 }
 
 /// CTAP HID information.
