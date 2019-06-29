@@ -12,11 +12,18 @@ pub struct Device {
 }
 
 impl Device {
-    /// Returns whether the device supports FIDO2.
-    pub fn is_fido2(&self) -> bool {
-        unsafe { fido_dev_is_fido2(self.raw.as_ptr()) }
+    /// Returns the latest mode the device supports.
+    pub fn mode(&self) -> DeviceMode {
+        unsafe {
+            if fido_dev_is_fido2(self.raw.as_ptr()) {
+                DeviceMode::Fido2
+            } else {
+                DeviceMode::FidoU2F
+            }
+        }
     }
 
+    /// Forces the communication to follow the chosen standard.
     pub fn force_mode(&mut self, mode: DeviceMode) {
         unsafe {
             match mode {

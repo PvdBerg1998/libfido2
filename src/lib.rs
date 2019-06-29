@@ -33,7 +33,7 @@ impl Fido {
     pub fn new() -> Self {
         LIB_INITIALIZED.call_once(|| unsafe {
             // Argument can be 0 for no debugging, or FIDO_DEBUG for debugging
-            fido_init(0);
+            fido_init(FIDO_DEBUG);
         });
 
         Fido { _private: () }
@@ -58,7 +58,21 @@ impl Fido {
         }
     }
 
-    pub fn new_credential(&self) -> Credential {
+    /// Creates a new [`CredentialCreator`].
+    ///
+    /// [`CredentialCreator`]: struct.CredentialCreator.html
+    pub fn new_credential_creator(&self) -> CredentialCreator {
+        CredentialCreator(self.allocate_credential())
+    }
+
+    /// Creates a new [`CredentialVerifier`].
+    ///
+    /// [`CredentialVerifier`]: struct.CredentialVerifier.html
+    pub fn new_credential_verifier(&self) -> CredentialVerifier {
+        CredentialVerifier(self.allocate_credential())
+    }
+
+    fn allocate_credential(&self) -> Credential {
         unsafe {
             Credential {
                 raw: NonNull::new(fido_cred_new()).unwrap(),

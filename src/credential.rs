@@ -1,7 +1,7 @@
 use crate::{ffi::NonNull, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{error, ffi::CStr, fmt, os::raw, slice, str::FromStr};
+use std::{error, ffi::CStr, fmt, os::raw, ptr, slice, str::FromStr};
 
 // @TODO: Create types for getters/setters instead of using byte slices
 // This is out of scope for now
@@ -75,8 +75,8 @@ impl CredentialCreator {
         &mut self,
         user_id: &[u8],
         name: &CStr,
-        display_name: &CStr,
-        icon: &CStr,
+        display_name: Option<&CStr>,
+        account_image_uri: Option<&CStr>,
     ) -> Result<()> {
         unsafe {
             match fido_cred_set_user(
@@ -84,8 +84,8 @@ impl CredentialCreator {
                 user_id as *const _ as *const _,
                 user_id.len(),
                 name.as_ptr(),
-                display_name.as_ptr(),
-                icon.as_ptr(),
+                display_name.map(CStr::as_ptr).unwrap_or(ptr::null()),
+                account_image_uri.map(CStr::as_ptr).unwrap_or(ptr::null()),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -203,14 +203,6 @@ impl Credential {
                 x509_certificate,
             }
         }
-    }
-
-    pub fn into_creator(self) -> CredentialCreator {
-        CredentialCreator(self)
-    }
-
-    pub fn into_verifier(self) -> CredentialVerifier {
-        CredentialVerifier(self)
     }
 
     fn set_options(&mut self, options: CredentialOptions) -> Result<()> {
