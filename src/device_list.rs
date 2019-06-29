@@ -1,4 +1,4 @@
-use crate::{device::DevicePath, nonnull::NonNull};
+use crate::{device::DevicePath, ffi::NonNull};
 use libfido2_sys::*;
 use std::{ffi::CStr, str};
 
@@ -10,6 +10,17 @@ pub struct DeviceList {
     pub(crate) raw: NonNull<fido_dev_info>,
     pub(crate) length: usize,
     pub(crate) found: usize,
+}
+
+/// Information about a found, not connected to, device.
+/// Contains OS-specific path, which can be used to connect to a device.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct DeviceInformation<'a> {
+    pub path: DevicePath<'a>,
+    pub product_id: i16,
+    pub vendor_id: i16,
+    pub manufacturer: &'a str,
+    pub product: &'a str,
 }
 
 impl DeviceList {
@@ -62,15 +73,4 @@ impl Drop for DeviceList {
             assert!(device_list.is_null());
         }
     }
-}
-
-/// Information about a found, not connected to, device.
-/// Contains OS-specific path, which can be used to connect to a device.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct DeviceInformation<'a> {
-    pub path: DevicePath<'a>,
-    pub product_id: i16,
-    pub vendor_id: i16,
-    pub manufacturer: &'a str,
-    pub product: &'a str,
 }

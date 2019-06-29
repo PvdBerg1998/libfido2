@@ -1,6 +1,6 @@
-use crate::nonnull::NonNull;
+use crate::ffi::*;
 use libfido2_sys::*;
-use std::{collections::HashMap, ffi::CStr, iter::FromIterator, os::raw::c_char, slice, str};
+use std::{collections::HashMap, iter::FromIterator, slice, str};
 
 /// Owns additional data stored as CBOR on a device.
 #[derive(PartialEq, Eq)]
@@ -8,67 +8,60 @@ pub struct CBORData {
     pub(crate) raw: NonNull<fido_cbor_info>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CBORDataRef<'a> {
+    pub aag_uid: Option<&'a [u8]>,
+    pub pin_protocols: &'a [u8],
+    pub extensions: Box<[&'a str]>,
+    pub ctap_versions: Box<[&'a str]>,
+    pub options: HashMap<&'a str, bool>,
+}
+
 impl CBORData {
-    /// Creates a reference of the owned data.
-    ///
-    /// # Remarks
-    /// - This performs some FFI calls and data conversion and is not zero-cost.
-    pub fn info<'a>(&'a self) -> CBORInformation<'a> {
+    pub fn as_ref<'a>(&'a self) -> CBORDataRef<'a> {
         unsafe {
             let cbor_info = self.raw.as_ptr();
 
-            let aag_uid = fido_cbor_info_aaguid_ptr(cbor_info);
-            let aag_uid = if aag_uid.is_null() {
-                &[]
-            } else {
-                let len = fido_cbor_info_aaguid_len(cbor_info);
-                slice::from_raw_parts(aag_uid, len)
-            };
+            let aag_uid = fido_cbor_info_aaguid_ptr(cbor_info)
+                .as_ref()
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cbor_info_aaguid_len(cbor_info)));
 
-            let pin_protocols = fido_cbor_info_protocols_ptr(cbor_info);
-            let pin_protocols = if pin_protocols.is_null() {
-                &[]
-            } else {
-                let len = fido_cbor_info_protocols_len(cbor_info);
-                slice::from_raw_parts(pin_protocols, len)
-            };
+            let pin_protocols = fido_cbor_info_protocols_ptr(cbor_info)
+                .as_ref()
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cbor_info_protocols_len(cbor_info)))
+                .unwrap_or(&[]);
 
-            let extensions = fido_cbor_info_extensions_ptr(cbor_info);
-            let extensions = if extensions.is_null() {
-                Box::new([])
-            } else {
-                let len = fido_cbor_info_extensions_len(cbor_info);
-                convert_cstr_array_ptr(extensions, len)
-            };
+            let extensions = fido_cbor_info_extensions_ptr(cbor_info)
+                .as_ref()
+                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_extensions_len(cbor_info)))
+                .unwrap_or(Box::new([]));
 
-            let ctap_versions = fido_cbor_info_versions_ptr(cbor_info);
-            let ctap_versions = if ctap_versions.is_null() {
-                Box::new([])
-            } else {
-                let len = fido_cbor_info_versions_len(cbor_info);
-                convert_cstr_array_ptr(ctap_versions, len)
-            };
+            let ctap_versions = fido_cbor_info_versions_ptr(cbor_info)
+                .as_ref()
+                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_versions_len(cbor_info)))
+                .unwrap_or(Box::new([]));
 
-            let option_names = fido_cbor_info_options_name_ptr(cbor_info);
-            let options = if option_names.is_null() {
-                HashMap::with_capacity(0)
-            } else {
-                let len = fido_cbor_info_options_len(cbor_info);
+            let options = fido_cbor_info_options_name_ptr(cbor_info)
+                .as_ref()
+                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_options_len(cbor_info)))
+                .map(|names| {
+                    let values = fido_cbor_info_options_value_ptr(cbor_info)
+                        .as_ref()
+                        .map(|ptr| slice::from_raw_parts(ptr, names.len()))
+                        .unwrap();
+                    (names, values)
+                })
+                .map(|(names, values)| {
+                    HashMap::from_iter(
+                        names
+                            .iter()
+                            .zip(values)
+                            .map(|(name, value)| (*name, *value)),
+                    )
+                })
+                .unwrap_or(HashMap::with_capacity(0));
 
-                let names = convert_cstr_array_ptr(option_names, len);
-                let values = fido_cbor_info_options_value_ptr(cbor_info);
-                assert!(!values.is_null());
-                let values = slice::from_raw_parts(values, len);
-
-                HashMap::from_iter(
-                    names
-                        .iter()
-                        .zip(values)
-                        .map(|(name, value)| (*name, *value)),
-                )
-            };
-
-            CBORInformation {
+            CBORDataRef {
                 aag_uid,
                 pin_protocols,
                 extensions,
@@ -77,22 +70,6 @@ impl CBORData {
             }
         }
     }
-}
-
-/// Converts a `*mut *mut c_char` to a boxed array of `&str`s.
-///
-/// # Unsafety
-/// - The `array` pointer must be valid.
-/// - Contained strings must be valid UTF-8.
-unsafe fn convert_cstr_array_ptr<'a>(array: *mut *mut c_char, len: usize) -> Box<[&'a str]> {
-    slice::from_raw_parts(array, len)
-        .iter()
-        .map(|ptr| {
-            assert!(!ptr.is_null());
-            str::from_utf8_unchecked(CStr::from_ptr(*ptr).to_bytes())
-        })
-        .collect::<Vec<&'a str>>()
-        .into_boxed_slice()
 }
 
 // libfido2_sys guarantees this.
@@ -107,14 +84,4 @@ impl Drop for CBORData {
             assert!(cbor_info.is_null());
         }
     }
-}
-
-/// Information stored as CBOR on a device.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CBORInformation<'a> {
-    pub aag_uid: &'a [u8],
-    pub pin_protocols: &'a [u8],
-    pub extensions: Box<[&'a str]>,
-    pub ctap_versions: Box<[&'a str]>,
-    pub options: HashMap<&'a str, bool>,
 }

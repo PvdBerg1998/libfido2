@@ -1,16 +1,18 @@
 #![allow(dead_code)]
 
 mod cbor_info;
+mod credential;
 mod device;
 mod device_list;
-mod nonnull;
+mod ffi;
 
 pub use cbor_info::*;
+pub use credential::*;
 pub use device::*;
 pub use device_list::*;
 
+use ffi::NonNull;
 use libfido2_sys::*;
-use nonnull::NonNull;
 use std::{error, ffi::CStr, fmt, os::raw, str, sync::Once};
 
 const FIDO_DEBUG: raw::c_int = libfido2_sys::FIDO_DEBUG as raw::c_int;
@@ -52,6 +54,14 @@ impl Fido {
             match fido_dev_open(device.raw.as_ptr_mut(), path.0.as_ptr()) {
                 FIDO_OK => Ok(device),
                 err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    pub fn new_credential(&self) -> Credential {
+        unsafe {
+            Credential {
+                raw: NonNull::new(fido_cred_new()).unwrap(),
             }
         }
     }

@@ -1,7 +1,7 @@
-use crate::{cbor_info::CBORData, nonnull::NonNull, FidoError, Result, FIDO_OK};
+use crate::{cbor_info::CBORData, ffi::NonNull, FidoError, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{ffi::CStr, str};
+use std::{convert::AsRef, ffi::CStr, str};
 
 /// Represents a connection to a FIDO2 device.
 #[derive(PartialEq, Eq)]
@@ -142,6 +142,12 @@ impl<'a> DevicePath<'a> {
     /// Converts the path to a `&str`.
     pub fn to_str(&self) -> &str {
         unsafe { str::from_utf8_unchecked(self.0.to_bytes()) }
+    }
+}
+
+impl AsRef<str> for DevicePath<'_> {
+    fn as_ref(&self) -> &str {
+        self.to_str()
     }
 }
 
