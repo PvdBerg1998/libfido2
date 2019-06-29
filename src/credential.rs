@@ -12,13 +12,13 @@ pub struct Credential {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CredentialRef<'a> {
-    pub format: Option<&'a CStr>,
-    pub auth_data: Option<&'a [u8]>,
-    pub client_data_hash: Option<&'a [u8]>,
-    pub id: Option<&'a [u8]>,
-    pub public_key: Option<&'a [u8]>,
-    pub signature: Option<&'a [u8]>,
-    pub x509_certificate: Option<&'a [u8]>,
+    pub format: &'a CStr,
+    pub auth_data: &'a [u8],
+    pub client_data_hash: &'a [u8],
+    pub id: &'a [u8],
+    pub public_key: &'a [u8],
+    pub signature: &'a [u8],
+    pub x509_certificate: &'a [u8],
 }
 
 pub struct CredentialCreator(pub(crate) Credential);
@@ -167,31 +167,38 @@ impl Credential {
 
             let format = fido_cred_fmt(credential)
                 .as_ref()
-                .map(|ptr| CStr::from_ptr(ptr));
+                .map(|ptr| CStr::from_ptr(ptr))
+                .unwrap();
 
             let auth_data = fido_cred_authdata_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_authdata_len(credential)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_authdata_len(credential)))
+                .unwrap();
 
             let client_data_hash = fido_cred_clientdata_hash_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_clientdata_hash_len(credential)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_clientdata_hash_len(credential)))
+                .unwrap();
 
             let id = fido_cred_id_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_id_len(credential)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_id_len(credential)))
+                .unwrap();
 
             let public_key = fido_cred_pubkey_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_pubkey_len(credential)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_pubkey_len(credential)))
+                .unwrap();
 
             let signature = fido_cred_sig_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_sig_len(credential)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_sig_len(credential)))
+                .unwrap();
 
             let x509_certificate = fido_cred_x5c_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_x5c_len(credential)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_x5c_len(credential)))
+                .unwrap();
 
             CredentialRef {
                 format,
