@@ -108,9 +108,13 @@ impl Device {
     /// # Remarks
     /// - This is synchronous and will block.
     /// - Too many invalid PINs will lock the device.
-    pub fn set_pin(&mut self, new_pin: &CStr, old_pin: &CStr) -> Result<()> {
+    pub fn set_pin(&mut self, new_pin: &CStr, old_pin: Option<&CStr>) -> Result<()> {
         unsafe {
-            match fido_dev_set_pin(self.raw.as_ptr_mut(), new_pin.as_ptr(), old_pin.as_ptr()) {
+            match fido_dev_set_pin(
+                self.raw.as_ptr_mut(),
+                new_pin.as_ptr(),
+                old_pin.map(CStr::as_ptr).unwrap_or(ptr::null()),
+            ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
             }
