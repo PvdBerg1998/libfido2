@@ -61,8 +61,11 @@ impl Fido {
     /// Creates a new [`CredentialCreator`].
     ///
     /// [`CredentialCreator`]: struct.CredentialCreator.html
-    pub fn new_credential_creator(&self) -> CredentialCreator {
-        CredentialCreator(self.allocate_credential())
+    pub fn new_credential_creator(
+        &self,
+        data: CredentialCreationData<'_>,
+    ) -> Result<CredentialCreator> {
+        CredentialCreator::new(self.allocate_credential(), data)
     }
 
     /// Creates a new [`CredentialVerifier`].

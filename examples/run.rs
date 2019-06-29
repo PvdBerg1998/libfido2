@@ -38,14 +38,19 @@ pub fn _main() -> Result<(), FidoError> {
             .as_ref()
     );
 
-    let mut creator = fido.new_credential_creator();
-    creator.set_type(CredentialType::ES256)?;
-    creator.set_client_data_hash(&CLIENT_DATA_HASH)?;
-    creator.set_relying_party(
-        &CString::new(RELYING_PARTY_ID).unwrap(),
-        &CString::new(RELYING_PARTY_NAME).unwrap(),
-    )?;
-    creator.set_user(&USER_ID, &CString::new(USER_NAME).unwrap(), None, None)?;
+    let creator = fido.new_credential_creator(CredentialCreationData {
+        excluded_ids: &[],
+        credential_type: CredentialType::ES256,
+        client_data_hash: &CLIENT_DATA_HASH,
+        relying_party_id: &CString::new(RELYING_PARTY_ID).unwrap(),
+        relying_party_name: &CString::new(RELYING_PARTY_NAME).unwrap(),
+        user_id: &USER_ID,
+        user_name: &CString::new(USER_NAME).unwrap(),
+        user_display_name: None,
+        user_image_uri: None,
+        options: CredentialOptions::empty(),
+        extensions: CredentialExtensions::empty(),
+    })?;
 
     let credential = device.request_credential_creation(creator, None)?;
     println!("Created credential: {:?}", credential.as_ref());

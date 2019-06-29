@@ -24,139 +24,69 @@ pub struct CredentialRef<'a> {
 pub struct CredentialCreator(pub(crate) Credential);
 pub struct CredentialVerifier(pub(crate) Credential);
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CredentialCreationData<'a> {
+    pub excluded_ids: &'a [u8],
+    pub credential_type: CredentialType,
+    pub client_data_hash: &'a [u8],
+    pub relying_party_id: &'a CStr,
+    pub relying_party_name: &'a CStr,
+    pub user_id: &'a [u8],
+    pub user_name: &'a CStr,
+    pub user_display_name: Option<&'a CStr>,
+    pub user_image_uri: Option<&'a CStr>,
+    pub options: CredentialOptions,
+    pub extensions: CredentialExtensions,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CredentialVerificationData<'a> {
+    pub format: CredentialFormat,
+    pub auth_data: &'a [u8],
+    pub x509_certificate: &'a [u8],
+    pub signature: &'a [u8],
+    pub options: CredentialOptions,
+    pub extensions: CredentialExtensions,
+}
+
 impl CredentialCreator {
-    pub fn set_excluded(&mut self, excluded_ids: &[u8]) -> Result<()> {
-        unsafe {
-            match fido_cred_exclude(
-                self.0.raw.as_ptr_mut(),
-                excluded_ids as *const _ as *const _,
-                excluded_ids.len(),
-            ) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
+    pub(crate) fn new(
+        mut credential: Credential,
+        data: CredentialCreationData<'_>,
+    ) -> Result<Self> {
+        // @TODO propagate location of error
+        // @FIXME calling this with len==0 results in FIDO_ERR_INTERNAL
+        if !data.excluded_ids.is_empty() {
+            credential.set_excluded(data.excluded_ids)?;
         }
-    }
-
-    /// # Remarks
-    /// - This method can only be called once and will return an error afterwards @TODO why?
-    pub fn set_type(&mut self, credential_type: CredentialType) -> Result<()> {
-        unsafe {
-            match fido_cred_set_type(self.0.raw.as_ptr_mut(), credential_type as raw::c_int) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_client_data_hash(&mut self, client_data_hash: &[u8]) -> Result<()> {
-        unsafe {
-            match fido_cred_set_clientdata_hash(
-                self.0.raw.as_ptr_mut(),
-                client_data_hash as *const _ as *const _,
-                client_data_hash.len(),
-            ) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_relying_party(&mut self, id: &CStr, name: &CStr) -> Result<()> {
-        unsafe {
-            match fido_cred_set_rp(self.0.raw.as_ptr_mut(), id.as_ptr(), name.as_ptr()) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_user(
-        &mut self,
-        user_id: &[u8],
-        name: &CStr,
-        display_name: Option<&CStr>,
-        account_image_uri: Option<&CStr>,
-    ) -> Result<()> {
-        unsafe {
-            match fido_cred_set_user(
-                self.0.raw.as_ptr_mut(),
-                user_id as *const _ as *const _,
-                user_id.len(),
-                name.as_ptr(),
-                display_name.map(CStr::as_ptr).unwrap_or(ptr::null()),
-                account_image_uri.map(CStr::as_ptr).unwrap_or(ptr::null()),
-            ) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_options(&mut self, options: CredentialOptions) -> Result<()> {
-        self.0.set_options(options)
-    }
-
-    pub fn set_extensions(&mut self, extensions: CredentialExtensions) -> Result<()> {
-        self.0.set_extensions(extensions)
+        credential.set_type(data.credential_type)?;
+        credential.set_client_data_hash(data.client_data_hash)?;
+        credential.set_relying_party(data.relying_party_id, data.relying_party_name)?;
+        credential.set_user(
+            data.user_id,
+            data.user_name,
+            data.user_display_name,
+            data.user_image_uri,
+        )?;
+        credential.set_options(data.options)?;
+        credential.set_extensions(data.extensions)?;
+        Ok(CredentialCreator(credential))
     }
 }
 
 impl CredentialVerifier {
-    pub fn set_format(&mut self, fmt: CredentialFormat) -> Result<()> {
-        unsafe {
-            match fido_cred_set_fmt(self.0.raw.as_ptr_mut(), fmt.to_ffi()) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_auth_data(&mut self, auth_data: &[u8]) -> Result<()> {
-        unsafe {
-            match fido_cred_set_authdata(
-                self.0.raw.as_ptr_mut(),
-                auth_data as *const _ as *const _,
-                auth_data.len(),
-            ) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_x509_certificate(&mut self, x509_certificate: &[u8]) -> Result<()> {
-        unsafe {
-            match fido_cred_set_x509(
-                self.0.raw.as_ptr_mut(),
-                x509_certificate as *const _ as *const _,
-                x509_certificate.len(),
-            ) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_signature(&mut self, signature: &[u8]) -> Result<()> {
-        unsafe {
-            match fido_cred_set_sig(
-                self.0.raw.as_ptr_mut(),
-                signature as *const _ as *const _,
-                signature.len(),
-            ) {
-                FIDO_OK => Ok(()),
-                err => Err(FidoError(err)),
-            }
-        }
-    }
-
-    pub fn set_options(&mut self, options: CredentialOptions) -> Result<()> {
-        self.0.set_options(options)
-    }
-
-    pub fn set_extensions(&mut self, extensions: CredentialExtensions) -> Result<()> {
-        self.0.set_extensions(extensions)
+    pub(crate) fn new(
+        mut credential: Credential,
+        data: CredentialVerificationData<'_>,
+    ) -> Result<Self> {
+        // @TODO propagate location of error
+        credential.set_format(data.format)?;
+        credential.set_auth_data(data.auth_data)?;
+        credential.set_x509_certificate(data.x509_certificate)?;
+        credential.set_signature(data.signature)?;
+        credential.set_options(data.options)?;
+        credential.set_extensions(data.extensions)?;
+        Ok(CredentialVerifier(credential))
     }
 }
 
@@ -208,6 +138,120 @@ impl Credential {
                 public_key,
                 signature,
                 x509_certificate,
+            }
+        }
+    }
+
+    fn set_excluded(&mut self, excluded_ids: &[u8]) -> Result<()> {
+        unsafe {
+            match fido_cred_exclude(
+                self.raw.as_ptr_mut(),
+                excluded_ids as *const _ as *const _,
+                excluded_ids.len(),
+            ) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_type(&mut self, credential_type: CredentialType) -> Result<()> {
+        unsafe {
+            match fido_cred_set_type(self.raw.as_ptr_mut(), credential_type as raw::c_int) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_client_data_hash(&mut self, client_data_hash: &[u8]) -> Result<()> {
+        unsafe {
+            match fido_cred_set_clientdata_hash(
+                self.raw.as_ptr_mut(),
+                client_data_hash as *const _ as *const _,
+                client_data_hash.len(),
+            ) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_relying_party(&mut self, id: &CStr, name: &CStr) -> Result<()> {
+        unsafe {
+            match fido_cred_set_rp(self.raw.as_ptr_mut(), id.as_ptr(), name.as_ptr()) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_user(
+        &mut self,
+        user_id: &[u8],
+        name: &CStr,
+        display_name: Option<&CStr>,
+        image_uri: Option<&CStr>,
+    ) -> Result<()> {
+        unsafe {
+            match fido_cred_set_user(
+                self.raw.as_ptr_mut(),
+                user_id as *const _ as *const _,
+                user_id.len(),
+                name.as_ptr(),
+                display_name.map(CStr::as_ptr).unwrap_or(ptr::null()),
+                image_uri.map(CStr::as_ptr).unwrap_or(ptr::null()),
+            ) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_format(&mut self, fmt: CredentialFormat) -> Result<()> {
+        unsafe {
+            match fido_cred_set_fmt(self.raw.as_ptr_mut(), fmt.to_ffi()) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_auth_data(&mut self, auth_data: &[u8]) -> Result<()> {
+        unsafe {
+            match fido_cred_set_authdata(
+                self.raw.as_ptr_mut(),
+                auth_data as *const _ as *const _,
+                auth_data.len(),
+            ) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_x509_certificate(&mut self, x509_certificate: &[u8]) -> Result<()> {
+        unsafe {
+            match fido_cred_set_x509(
+                self.raw.as_ptr_mut(),
+                x509_certificate as *const _ as *const _,
+                x509_certificate.len(),
+            ) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    fn set_signature(&mut self, signature: &[u8]) -> Result<()> {
+        unsafe {
+            match fido_cred_set_sig(
+                self.raw.as_ptr_mut(),
+                signature as *const _ as *const _,
+                signature.len(),
+            ) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
             }
         }
     }
