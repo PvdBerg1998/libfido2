@@ -8,13 +8,13 @@ pub struct Credential {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CredentialRef<'a> {
-    format: Option<&'a CStr>,
-    auth_data: Option<&'a [u8]>,
-    client_data_hash: Option<&'a [u8]>,
-    id: Option<&'a [u8]>,
-    public_key: Option<&'a [u8]>,
-    signature: Option<&'a [u8]>,
-    x509_certificate: Option<&'a [u8]>,
+    pub format: Option<&'a CStr>,
+    pub auth_data: Option<&'a [u8]>,
+    pub client_data_hash: Option<&'a [u8]>,
+    pub id: Option<&'a [u8]>,
+    pub public_key: Option<&'a [u8]>,
+    pub signature: Option<&'a [u8]>,
+    pub x509_certificate: Option<&'a [u8]>,
 }
 
 impl Credential {
