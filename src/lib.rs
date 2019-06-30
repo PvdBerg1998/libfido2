@@ -7,6 +7,7 @@ mod device;
 mod device_list;
 mod ffi;
 
+pub use assertion::*;
 pub use cbor_info::*;
 pub use credential::*;
 pub use device::*;
@@ -75,6 +76,23 @@ impl Fido {
             CredentialCreator::new(
                 Credential {
                     raw: NonNull::new(fido_cred_new()).unwrap(),
+                },
+                data,
+            )
+        }
+    }
+
+    /// Creates a new [`AssertionCreator`].
+    ///
+    /// [`AssertionCreator`]: struct.AssertionCreator.html
+    pub fn new_assertion_creator(
+        &self,
+        data: AssertionCreationData<'_>,
+    ) -> Result<AssertionCreator> {
+        unsafe {
+            AssertionCreator::new(
+                Assertion {
+                    raw: NonNull::new(fido_assert_new()).unwrap(),
                 },
                 data,
             )

@@ -3,13 +3,13 @@ use bitflags::bitflags;
 use libfido2_sys::*;
 use std::{error, ffi::CStr, fmt, os::raw, ptr, slice, str::FromStr};
 
-// Raw credential is initialized with NULL data
+// Raw Credential is initialized with NULL data
 // Only expose this type when it is properly initialized (returned from device)
 pub struct Credential {
     pub(crate) raw: NonNull<fido_cred>,
 }
 
-// Wrapper type to safely initialize the credential with enough information to pass to a device
+// Wrapper type to safely initialize the Credential with enough information to pass to a device
 pub struct CredentialCreator(Credential);
 
 /// Required information to request a new [`Credential`] from a `Device`.
@@ -30,7 +30,7 @@ pub struct CredentialCreationData<'a> {
     pub extensions: CredentialExtensions,
 }
 
-// Possible to retrieve after a credential was returned from a device
+// Possible to retrieve after a Credential was returned from a device
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CredentialRef<'a> {
     pub format: &'a CStr,
@@ -43,7 +43,7 @@ pub struct CredentialRef<'a> {
 }
 
 impl<'a> CredentialCreationData<'a> {
-    /// Construct a new `CredentialCreationData` with given parameters and defaults.
+    /// Constructs a new `CredentialCreationData` with given parameters and defaults.
     pub fn with_defaults(
         client_data_hash: &'a [u8],
         relying_party_id: &'a CStr,
@@ -68,7 +68,7 @@ impl<'a> CredentialCreationData<'a> {
 }
 
 impl CredentialCreator {
-    /// Makes sure the contained credential is initialized for transfer to a device
+    /// Makes sure the contained Credential is initialized for transfer to a device
     pub(crate) fn new(
         mut credential: Credential,
         data: CredentialCreationData<'_>,
@@ -100,7 +100,7 @@ impl CredentialCreator {
         &mut self.0.raw
     }
 
-    /// NB. Only call this after the credential was returned from a device, or it will cause panics
+    /// NB. Only call this after the Credential was returned from a device, or it will cause panics
     pub(crate) fn into_inner(self) -> Credential {
         self.0
     }

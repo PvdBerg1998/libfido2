@@ -1,5 +1,6 @@
 use crate::{
-    cbor_info::CBORData, ffi::NonNull, Credential, CredentialCreator, FidoError, Result, FIDO_OK,
+    cbor_info::CBORData, ffi::NonNull, Assertion, AssertionCreator, Credential, CredentialCreator,
+    FidoError, Result, FIDO_OK,
 };
 use bitflags::bitflags;
 use libfido2_sys::*;
@@ -78,7 +79,7 @@ impl Device {
         }
     }
 
-    /// Requests the device to create a new credential.
+    /// Requests the device to create a new Credential.
     ///
     /// # Remarks
     /// - This is synchronous and will block.
@@ -94,6 +95,27 @@ impl Device {
                 pin.map(CStr::as_ptr).unwrap_or(ptr::null()),
             ) {
                 FIDO_OK => Ok(credential.into_inner()),
+                err => Err(FidoError(err)),
+            }
+        }
+    }
+
+    /// Requests the device to verify an Assertion.
+    ///
+    /// # Remarks
+    /// - This is synchronous and will block.
+    pub fn request_assertion_verification(
+        &mut self,
+        mut assertion: AssertionCreator,
+        pin: Option<&CStr>,
+    ) -> Result<Assertion> {
+        unsafe {
+            match fido_dev_get_assert(
+                self.raw.as_ptr_mut(),
+                assertion.raw_mut().as_ptr_mut(),
+                pin.map(CStr::as_ptr).unwrap_or(ptr::null()),
+            ) {
+                FIDO_OK => Ok(assertion.into_inner()),
                 err => Err(FidoError(err)),
             }
         }
