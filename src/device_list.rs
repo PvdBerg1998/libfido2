@@ -8,7 +8,9 @@ use std::{ffi::CStr, str};
 #[derive(PartialEq, Eq)]
 pub struct DeviceList {
     pub(crate) raw: NonNull<fido_dev_info>,
+    // Length of allocation (may contain uninitialized memory)
     pub(crate) length: usize,
+    // Length of found devices
     pub(crate) found: usize,
 }
 
@@ -58,6 +60,11 @@ impl DeviceList {
                 product,
             }
         })
+    }
+
+    /// Returns the amount of devices found.
+    pub fn len(&self) -> usize {
+        self.found
     }
 }
 

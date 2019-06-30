@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod assertion;
 mod cbor_info;
 mod credential;
 mod device;
@@ -112,19 +113,31 @@ impl Fido {
 }
 
 /// Contains a FIDO2 error.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct FidoError(raw::c_int);
 
-impl error::Error for FidoError {}
-
-impl fmt::Display for FidoError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl FidoError {
+    pub(crate) fn as_str(&self) -> &'static str {
         unsafe {
             let error_str = fido_strerr(self.0);
             assert!(!error_str.is_null());
-            f.write_str(str::from_utf8_unchecked(
-                CStr::from_ptr(error_str).to_bytes(),
-            ))
+            str::from_utf8_unchecked(CStr::from_ptr(error_str).to_bytes())
         }
+    }
+}
+
+impl error::Error for FidoError {}
+
+impl fmt::Debug for FidoError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("FidoError")
+            .field(&self.as_str() as &dyn fmt::Debug)
+            .finish()
+    }
+}
+
+impl fmt::Display for FidoError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }

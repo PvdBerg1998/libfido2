@@ -16,17 +16,12 @@ const RELYING_PARTY_ID: &'static str = "localhost";
 const RELYING_PARTY_NAME: &'static str = "Oost West, Thuis Best";
 
 pub fn main() {
-    match _main() {
-        Ok(()) => {}
-        Err(e) => eprintln!("{}", e),
-    }
-}
-
-pub fn _main() -> Result<(), FidoError> {
     let fido = Fido::new(true);
+
     let detected_devices = fido.detect_devices(1);
     let info = detected_devices.iter().next().expect("No device found");
     println!("Found device: {:#?}", info);
+
     let mut device = fido.new_device(info.path).expect("Unable to open device");
     println!("Mode: {:?}", device.mode());
     println!("CTAPHID info: {:#?}", device.ctap_hid_info());
@@ -38,17 +33,18 @@ pub fn _main() -> Result<(), FidoError> {
             .as_ref()
     );
 
-    let creator = fido.new_credential_creator(CredentialCreationData::with_defaults(
-        &CLIENT_DATA_HASH,
-        &CString::new(RELYING_PARTY_ID).unwrap(),
-        &CString::new(RELYING_PARTY_NAME).unwrap(),
-        &USER_ID,
-        &CString::new(USER_NAME).unwrap(),
-    ))?;
+    let creator = fido
+        .new_credential_creator(CredentialCreationData::with_defaults(
+            &CLIENT_DATA_HASH,
+            &CString::new(RELYING_PARTY_ID).unwrap(),
+            &CString::new(RELYING_PARTY_NAME).unwrap(),
+            &USER_ID,
+            &CString::new(USER_NAME).unwrap(),
+        ))
+        .unwrap();
 
     println!("Creating credential...");
-    let credential = device.request_credential_creation(creator, None)?;
+    let credential = device.request_credential_creation(creator, None).unwrap();
     println!("Created credential: {:?}", credential.as_ref());
     assert!(credential.verify().is_ok());
-    Ok(())
 }

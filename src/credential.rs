@@ -3,26 +3,18 @@ use bitflags::bitflags;
 use libfido2_sys::*;
 use std::{error, ffi::CStr, fmt, os::raw, ptr, slice, str::FromStr};
 
-// @TODO: Create types for getters/setters instead of using byte slices
-// This is out of scope for now
-
+// Raw credential is initialized with NULL data
+// Only expose this type when it is properly initialized (returned from device)
 pub struct Credential {
     pub(crate) raw: NonNull<fido_cred>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct CredentialRef<'a> {
-    pub format: &'a CStr,
-    pub auth_data: &'a [u8],
-    pub client_data_hash: &'a [u8],
-    pub id: &'a [u8],
-    pub public_key: &'a [u8],
-    pub signature: &'a [u8],
-    pub x509_certificate: &'a [u8],
-}
-
+// Wrapper type to safely initialize the credential with enough information to pass to a device
 pub struct CredentialCreator(Credential);
 
+/// Required information to request a new [`Credential`] from a `Device`.
+///
+/// [`Credential`]: struct.Credential.html
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CredentialCreationData<'a> {
     pub excluded_ids: &'a [u8],
@@ -38,7 +30,20 @@ pub struct CredentialCreationData<'a> {
     pub extensions: CredentialExtensions,
 }
 
+// Possible to retrieve after a credential was returned from a device
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CredentialRef<'a> {
+    pub format: &'a CStr,
+    pub auth_data: &'a [u8],
+    pub client_data_hash: &'a [u8],
+    pub id: &'a [u8],
+    pub public_key: &'a [u8],
+    pub signature: &'a [u8],
+    pub x509_certificate: &'a [u8],
+}
+
 impl<'a> CredentialCreationData<'a> {
+    /// Construct a new `CredentialCreationData` with given parameters and defaults.
     pub fn with_defaults(
         client_data_hash: &'a [u8],
         relying_party_id: &'a CStr,
@@ -63,6 +68,7 @@ impl<'a> CredentialCreationData<'a> {
 }
 
 impl CredentialCreator {
+    /// Makes sure the contained credential is initialized for transfer to a device
     pub(crate) fn new(
         mut credential: Credential,
         data: CredentialCreationData<'_>,
@@ -94,6 +100,7 @@ impl CredentialCreator {
         &mut self.0.raw
     }
 
+    /// NB. Only call this after the credential was returned from a device, or it will cause panics
     pub(crate) fn into_inner(self) -> Credential {
         self.0
     }
@@ -164,6 +171,10 @@ impl Credential {
         }
     }
 
+    /*
+        Private FFI setters
+    */
+
     fn set_excluded(&mut self, excluded_ids: &[u8]) -> Result<()> {
         unsafe {
             match fido_cred_exclude(
@@ -210,7 +221,7 @@ impl Credential {
 
     fn set_user(
         &mut self,
-        user_id: &[u8],
+        id: &[u8],
         name: &CStr,
         display_name: Option<&CStr>,
         image_uri: Option<&CStr>,
@@ -218,8 +229,8 @@ impl Credential {
         unsafe {
             match fido_cred_set_user(
                 self.raw.as_ptr_mut(),
-                user_id as *const _ as *const _,
-                user_id.len(),
+                id as *const _ as *const _,
+                id.len(),
                 name.as_ptr(),
                 display_name.map(CStr::as_ptr).unwrap_or(ptr::null()),
                 image_uri.map(CStr::as_ptr).unwrap_or(ptr::null()),
@@ -316,18 +327,30 @@ impl Drop for Credential {
 }
 
 bitflags! {
+    /// Extension flags for a [`Credential`].
+    ///
+    /// [`Credential`]: struct.Credential.html
     pub struct CredentialExtensions: raw::c_int {
+        /// Enables the ability to generate a symmetric secret.
         const HMAC_SECRET = FIDO_EXT_HMAC_SECRET as raw::c_int;
     }
 }
 
 bitflags! {
+    /// Option flags for a [`Credential`].
+    ///
+    /// [`Credential`]: struct.Credential.html
     pub struct CredentialOptions: u8 {
+        /// Instructs the authenticator to store the key material on the device.
         const RESIDENT_KEY = 1;
+        /// Instructs the authenticator to require a gesture that verifies the user to complete the request.
         const USER_VERIFICATION = 2;
     }
 }
 
+/// Possible data formats for a [`Credential`].
+///
+/// [`Credential`]: struct.Credential.html
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CredentialFormat {
     Fido2,
@@ -360,11 +383,14 @@ impl FromStr for CredentialFormat {
     }
 }
 
+/// Possible public key formats for a [`Credential`].
+///
+/// [`Credential`]: struct.Credential.html
 #[repr(i32)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CredentialType {
-    RS256 = COSE_RS256,
     ES256 = COSE_ES256,
+    RS256 = COSE_RS256,
     EDDSA = COSE_EDDSA,
 }
 
