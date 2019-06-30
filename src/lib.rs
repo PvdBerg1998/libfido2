@@ -6,12 +6,14 @@ mod credential;
 mod device;
 mod device_list;
 mod ffi;
+mod public_key;
 
 pub use assertion::*;
 pub use cbor_info::*;
 pub use credential::*;
 pub use device::*;
 pub use device_list::*;
+pub use public_key::*;
 
 use ffi::NonNull;
 use libfido2_sys::*;

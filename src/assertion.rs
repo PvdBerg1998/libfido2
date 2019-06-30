@@ -1,4 +1,4 @@
-use crate::{ffi::NonNull, FidoError, Result, FIDO_OK};
+use crate::{ffi::NonNull, FidoError, PublicKey, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
 use std::{ffi::CStr, slice};
@@ -146,6 +146,8 @@ impl Assertion {
             .filter(move |(i, statement)| {
                 unsafe {
                     //match fido_assert_verify(assertion, i, arg3: ::std::os::raw::c_int, arg4: *const ::std::os::raw::c_void)
+                    // @TODO
+                    unimplemented!();
                     false
                 }
             })
@@ -273,9 +275,6 @@ impl Drop for Assertion {
         }
     }
 }
-
-// @TODO
-pub enum PublicKey {}
 
 bitflags! {
     /// Option flags for an [`Assertion`].

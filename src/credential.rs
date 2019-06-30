@@ -1,4 +1,4 @@
-use crate::{ffi::NonNull, FidoError, Result, FIDO_OK};
+use crate::{ffi::NonNull, FidoError, PublicKey, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
 use std::{error, ffi::CStr, fmt, os::raw, ptr, slice, str::FromStr};
@@ -156,6 +156,11 @@ impl Credential {
                 x509_certificate,
             }
         }
+    }
+
+    pub fn get_public_key(&self) -> Result<PublicKey> {
+        // @TODO need to get type of pubkey somehow
+        unimplemented!()
     }
 
     /// Verifies that the Credential was signed with the key attested in the x509 certificate.
