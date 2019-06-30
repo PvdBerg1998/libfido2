@@ -9,8 +9,10 @@ A WIP Rust wrapper for [libfido2](https://github.com/Yubico/libfido2).
 - [x] Device CBOR information
 - [x] Device setting management
 - [x] Credential creation
-  - [ ] Docs
-- [ ] Credential verification
+- [x] Credential verification
+- [x] Assertion creation
+- [ ] Assertion verification: almost finished!
+- [ ] Improve docs
 
 ## Possible future plans
 - [ ] Type safety for crypto (?)
