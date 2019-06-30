@@ -133,6 +133,25 @@ impl Assertion {
         })
     }
 
+    /// Returns an iterator over the successfully verified [statements] contained in this assertion.
+    ///
+    /// [statements]: struct.Statement.html
+    pub fn iter_verified<'a>(
+        &'a self,
+        public_key: PublicKey,
+    ) -> impl Iterator<Item = Statement<'a>> {
+        let assertion = self.raw.as_ptr();
+        self.iter()
+            .enumerate()
+            .filter(move |(i, statement)| {
+                unsafe {
+                    //match fido_assert_verify(assertion, i, arg3: ::std::os::raw::c_int, arg4: *const ::std::os::raw::c_void)
+                    false
+                }
+            })
+            .map(|(_, statement)| statement)
+    }
+
     /// Returns the amount of statements in this assertion.
     pub fn len(&self) -> usize {
         unsafe { fido_assert_count(self.raw.as_ptr()) }
@@ -254,6 +273,9 @@ impl Drop for Assertion {
         }
     }
 }
+
+// @TODO
+pub enum PublicKey {}
 
 bitflags! {
     /// Option flags for an [`Assertion`].

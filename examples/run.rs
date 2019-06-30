@@ -16,7 +16,10 @@ const RELYING_PARTY_ID: &'static str = "localhost";
 const RELYING_PARTY_NAME: &'static str = "Oost West, Thuis Best";
 
 pub fn main() {
-    let fido = Fido::new(true);
+    let relying_party_id = CString::new(RELYING_PARTY_ID).unwrap();
+    let relying_party_name = CString::new(RELYING_PARTY_NAME).unwrap();
+    let user_name = CString::new(USER_NAME).unwrap();
+    let fido = Fido::new(false);
 
     let detected_devices = fido.detect_devices(1);
     let info = detected_devices.iter().next().expect("No device found");
@@ -33,18 +36,36 @@ pub fn main() {
             .as_ref()
     );
 
-    let creator = fido
-        .new_credential_creator(CredentialCreationData::with_defaults(
-            &CLIENT_DATA_HASH,
-            &CString::new(RELYING_PARTY_ID).unwrap(),
-            &CString::new(RELYING_PARTY_NAME).unwrap(),
-            &USER_ID,
-            &CString::new(USER_NAME).unwrap(),
-        ))
-        .unwrap();
-
     println!("Creating credential...");
-    let credential = device.request_credential_creation(creator, None).unwrap();
+    let credential = device
+        .request_credential_creation(
+            fido.new_credential_creator(CredentialCreationData::with_defaults(
+                &CLIENT_DATA_HASH,
+                &relying_party_id,
+                &relying_party_name,
+                &USER_ID,
+                &user_name,
+            ))
+            .unwrap(),
+            None,
+        )
+        .unwrap();
     println!("Created credential: {:?}", credential.as_ref());
     assert!(credential.verify().is_ok());
+
+    println!("Creating assertion...");
+    let assertion = device
+        .request_assertion_verification(
+            fido.new_assertion_creator(AssertionCreationData::with_defaults(
+                &relying_party_id,
+                &CLIENT_DATA_HASH,
+            ))
+            .unwrap(),
+            None,
+        )
+        .unwrap();
+    println!(
+        "Created assertion: {:?}",
+        assertion.iter().collect::<Vec<_>>()
+    );
 }
