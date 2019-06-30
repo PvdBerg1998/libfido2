@@ -1,5 +1,5 @@
 cp ../libfido2/libfido2_sys/bindings.h ./src/bindings.h &&
 bindgen ./src/bindings.h -o ../libfido2/libfido2_sys/src/bindings.rs \
---whitelist-function '(?i)^fido_.*|(?i)^.*_pk' \
---whitelist-type '(?i)^fido_.*|(?i)^.*_pk' \
---whitelist-var '(?i)^fido_.*|(?i)^ctap_.*|(?i)^u2f_.*|(?i)^cose_.*|(?i)^.*_pk'
+--whitelist-function '(?i)^fido_.*|(?i)^.*es256_pk.*|(?i)^.*rs256_pk.*|(?i)^.*eddsa_pk.*' \
+--whitelist-type '(?i)^fido_.*|(?i)^.*es256_pk.*|(?i)^.*rs256_pk.*|(?i)^.*eddsa_pk.*' \
+--whitelist-var '(?i)^fido_.*|(?i)^ctap_.*|(?i)^u2f_.*|(?i)^cose_.*|(?i)^.*es256_pk.*|(?i)^.*rs256_pk.*|(?i)^.*eddsa_pk.*'
