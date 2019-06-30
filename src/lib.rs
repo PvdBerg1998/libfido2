@@ -13,30 +13,32 @@ pub use device_list::*;
 
 use ffi::NonNull;
 use libfido2_sys::*;
-use std::{error, ffi::CStr, fmt, os::raw, str, sync::Once};
+use std::{error, ffi::CStr, fmt, os::raw, str};
 
 const FIDO_DEBUG: raw::c_int = libfido2_sys::FIDO_DEBUG as raw::c_int;
 const FIDO_OK: raw::c_int = libfido2_sys::FIDO_OK as raw::c_int;
-
-static LIB_INITIALIZED: Once = Once::new();
 
 type Result<T> = std::result::Result<T, FidoError>;
 
 /// The entry point of the library.
 /// All access to FIDO2 dongles goes through methods of this struct.
 pub struct Fido {
-    _private: (),
+    // Each thread must call fido_init, so Fido must be !Send !Sync
+    // Can be replaced with negative trait impl when it is stable
+    _private: *const (),
 }
 
 impl Fido {
     /// Initializes the FIDO2 library.
-    pub fn new() -> Self {
-        LIB_INITIALIZED.call_once(|| unsafe {
-            // Argument can be 0 for no debugging, or FIDO_DEBUG for debugging
-            fido_init(FIDO_DEBUG);
-        });
-
-        Fido { _private: () }
+    pub fn new(debug: bool) -> Self {
+        unsafe {
+            if debug {
+                fido_init(FIDO_DEBUG);
+            } else {
+                fido_init(0);
+            }
+        }
+        Fido { _private: &() }
     }
 
     /// Opens a new [`Device`] located at [`path`].
@@ -65,21 +67,13 @@ impl Fido {
         &self,
         data: CredentialCreationData<'_>,
     ) -> Result<CredentialCreator> {
-        CredentialCreator::new(self.allocate_credential(), data)
-    }
-
-    /// Creates a new [`CredentialVerifier`].
-    ///
-    /// [`CredentialVerifier`]: struct.CredentialVerifier.html
-    pub fn new_credential_verifier(&self) -> CredentialVerifier {
-        CredentialVerifier(self.allocate_credential())
-    }
-
-    fn allocate_credential(&self) -> Credential {
         unsafe {
-            Credential {
-                raw: NonNull::new(fido_cred_new()).unwrap(),
-            }
+            CredentialCreator::new(
+                Credential {
+                    raw: NonNull::new(fido_cred_new()).unwrap(),
+                },
+                data,
+            )
         }
     }
 

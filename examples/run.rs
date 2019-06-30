@@ -23,7 +23,7 @@ pub fn main() {
 }
 
 pub fn _main() -> Result<(), FidoError> {
-    let fido = Fido::new();
+    let fido = Fido::new(true);
     let detected_devices = fido.detect_devices(1);
     let info = detected_devices.iter().next().expect("No device found");
     println!("Found device: {:#?}", info);
@@ -38,9 +38,11 @@ pub fn _main() -> Result<(), FidoError> {
             .as_ref()
     );
 
+    // @FIXME RS256 returns FIDO_INVALID_OPTION
+    // @TODO verify only supports ES256 ?
     let creator = fido.new_credential_creator(CredentialCreationData {
         excluded_ids: &[],
-        credential_type: CredentialType::ES256,
+        credential_type: CredentialType::RS256,
         client_data_hash: &CLIENT_DATA_HASH,
         relying_party_id: &CString::new(RELYING_PARTY_ID).unwrap(),
         relying_party_name: &CString::new(RELYING_PARTY_NAME).unwrap(),
@@ -52,7 +54,9 @@ pub fn _main() -> Result<(), FidoError> {
         extensions: CredentialExtensions::empty(),
     })?;
 
+    println!("Creating credential...");
     let credential = device.request_credential_creation(creator, None)?;
     println!("Created credential: {:?}", credential.as_ref());
+    assert!(credential.verify().is_ok());
     Ok(())
 }

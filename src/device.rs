@@ -90,10 +90,10 @@ impl Device {
         unsafe {
             match fido_dev_make_cred(
                 self.raw.as_ptr_mut(),
-                credential.0.raw.as_ptr_mut(),
+                credential.raw_mut().as_ptr_mut(),
                 pin.map(CStr::as_ptr).unwrap_or(ptr::null()),
             ) {
-                FIDO_OK => Ok(credential.0),
+                FIDO_OK => Ok(credential.into_inner()),
                 err => Err(FidoError(err)),
             }
         }

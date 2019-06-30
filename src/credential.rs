@@ -21,8 +21,7 @@ pub struct CredentialRef<'a> {
     pub x509_certificate: &'a [u8],
 }
 
-pub struct CredentialCreator(pub(crate) Credential);
-pub struct CredentialVerifier(pub(crate) Credential);
+pub struct CredentialCreator(Credential);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CredentialCreationData<'a> {
@@ -35,16 +34,6 @@ pub struct CredentialCreationData<'a> {
     pub user_name: &'a CStr,
     pub user_display_name: Option<&'a CStr>,
     pub user_image_uri: Option<&'a CStr>,
-    pub options: CredentialOptions,
-    pub extensions: CredentialExtensions,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct CredentialVerificationData<'a> {
-    pub format: CredentialFormat,
-    pub auth_data: &'a [u8],
-    pub x509_certificate: &'a [u8],
-    pub signature: &'a [u8],
     pub options: CredentialOptions,
     pub extensions: CredentialExtensions,
 }
@@ -72,21 +61,17 @@ impl CredentialCreator {
         credential.set_extensions(data.extensions)?;
         Ok(CredentialCreator(credential))
     }
-}
 
-impl CredentialVerifier {
-    pub(crate) fn new(
-        mut credential: Credential,
-        data: CredentialVerificationData<'_>,
-    ) -> Result<Self> {
-        // @TODO propagate location of error
-        credential.set_format(data.format)?;
-        credential.set_auth_data(data.auth_data)?;
-        credential.set_x509_certificate(data.x509_certificate)?;
-        credential.set_signature(data.signature)?;
-        credential.set_options(data.options)?;
-        credential.set_extensions(data.extensions)?;
-        Ok(CredentialVerifier(credential))
+    pub(crate) fn raw(&self) -> &NonNull<fido_cred> {
+        &self.0.raw
+    }
+
+    pub(crate) fn raw_mut(&mut self) -> &mut NonNull<fido_cred> {
+        &mut self.0.raw
+    }
+
+    pub(crate) fn into_inner(self) -> Credential {
+        self.0
     }
 }
 
@@ -138,6 +123,19 @@ impl Credential {
                 public_key,
                 signature,
                 x509_certificate,
+            }
+        }
+    }
+
+    /// Verifies that the Credential was signed with the key attested in the x509 certificate.
+    ///
+    /// # Remarks
+    /// - The x509 certificate itself is not verified
+    pub fn verify(&self) -> Result<()> {
+        unsafe {
+            match fido_cred_verify(self.raw.as_ptr()) {
+                FIDO_OK => Ok(()),
+                err => Err(FidoError(err)),
             }
         }
     }
