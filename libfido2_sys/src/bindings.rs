@@ -96,6 +96,24 @@ pub const FIDO_DEBUG: u32 = 1;
 pub type __uint8_t = ::std::os::raw::c_uchar;
 pub type __int16_t = ::std::os::raw::c_short;
 pub type __uint64_t = ::std::os::raw::c_ulong;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct evp_pkey_st {
+    _unused: [u8; 0],
+}
+pub type EVP_PKEY = evp_pkey_st;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rsa_st {
+    _unused: [u8; 0],
+}
+pub type RSA = rsa_st;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ec_key_st {
+    _unused: [u8; 0],
+}
+pub type EC_KEY = ec_key_st;
 pub type fido_dev_io_open_t = ::std::option::Option<
     unsafe extern "C" fn(arg1: *const ::std::os::raw::c_char) -> *mut ::std::os::raw::c_void,
 >;
@@ -215,6 +233,24 @@ pub struct fido_dev_info {
     _unused: [u8; 0],
 }
 pub type fido_dev_info_t = fido_dev_info;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct es256_pk {
+    _unused: [u8; 0],
+}
+pub type es256_pk_t = es256_pk;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rs256_pk {
+    _unused: [u8; 0],
+}
+pub type rs256_pk_t = rs256_pk;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct eddsa_pk {
+    _unused: [u8; 0],
+}
+pub type eddsa_pk_t = eddsa_pk;
 extern "C" {
     pub fn fido_assert_new() -> *mut fido_assert_t;
 }
@@ -699,4 +735,67 @@ extern "C" {
 }
 extern "C" {
     pub fn fido_dev_is_fido2(arg1: *const fido_dev_t) -> bool;
+}
+extern "C" {
+    pub fn es256_pk_new() -> *mut es256_pk_t;
+}
+extern "C" {
+    pub fn es256_pk_free(arg1: *mut *mut es256_pk_t);
+}
+extern "C" {
+    pub fn es256_pk_to_EVP_PKEY(arg1: *const es256_pk_t) -> *mut EVP_PKEY;
+}
+extern "C" {
+    pub fn es256_pk_from_EC_KEY(
+        arg1: *mut es256_pk_t,
+        arg2: *const EC_KEY,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn es256_pk_from_ptr(
+        arg1: *mut es256_pk_t,
+        arg2: *const ::std::os::raw::c_void,
+        arg3: usize,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn rs256_pk_new() -> *mut rs256_pk_t;
+}
+extern "C" {
+    pub fn rs256_pk_free(arg1: *mut *mut rs256_pk_t);
+}
+extern "C" {
+    pub fn rs256_pk_to_EVP_PKEY(arg1: *const rs256_pk_t) -> *mut EVP_PKEY;
+}
+extern "C" {
+    pub fn rs256_pk_from_RSA(arg1: *mut rs256_pk_t, arg2: *const RSA) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn rs256_pk_from_ptr(
+        arg1: *mut rs256_pk_t,
+        arg2: *const ::std::os::raw::c_void,
+        arg3: usize,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn eddsa_pk_new() -> *mut eddsa_pk_t;
+}
+extern "C" {
+    pub fn eddsa_pk_free(arg1: *mut *mut eddsa_pk_t);
+}
+extern "C" {
+    pub fn eddsa_pk_to_EVP_PKEY(arg1: *const eddsa_pk_t) -> *mut EVP_PKEY;
+}
+extern "C" {
+    pub fn eddsa_pk_from_EVP_PKEY(
+        arg1: *mut eddsa_pk_t,
+        arg2: *const EVP_PKEY,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn eddsa_pk_from_ptr(
+        arg1: *mut eddsa_pk_t,
+        arg2: *const ::std::os::raw::c_void,
+        arg3: usize,
+    ) -> ::std::os::raw::c_int;
 }
