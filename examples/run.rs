@@ -38,21 +38,13 @@ pub fn _main() -> Result<(), FidoError> {
             .as_ref()
     );
 
-    // @FIXME RS256 returns FIDO_INVALID_OPTION
-    // @TODO verify only supports ES256 ?
-    let creator = fido.new_credential_creator(CredentialCreationData {
-        excluded_ids: &[],
-        credential_type: CredentialType::RS256,
-        client_data_hash: &CLIENT_DATA_HASH,
-        relying_party_id: &CString::new(RELYING_PARTY_ID).unwrap(),
-        relying_party_name: &CString::new(RELYING_PARTY_NAME).unwrap(),
-        user_id: &USER_ID,
-        user_name: &CString::new(USER_NAME).unwrap(),
-        user_display_name: None,
-        user_image_uri: None,
-        options: CredentialOptions::empty(),
-        extensions: CredentialExtensions::empty(),
-    })?;
+    let creator = fido.new_credential_creator(CredentialCreationData::with_defaults(
+        &CLIENT_DATA_HASH,
+        &CString::new(RELYING_PARTY_ID).unwrap(),
+        &CString::new(RELYING_PARTY_NAME).unwrap(),
+        &USER_ID,
+        &CString::new(USER_NAME).unwrap(),
+    ))?;
 
     println!("Creating credential...");
     let credential = device.request_credential_creation(creator, None)?;

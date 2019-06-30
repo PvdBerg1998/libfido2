@@ -62,6 +62,9 @@ impl Fido {
 
     /// Creates a new [`CredentialCreator`].
     ///
+    /// # Remarks
+    /// - Some authenticators may require the `RESIDENT_KEY` option for certain `CredentialType`'s.
+    ///
     /// [`CredentialCreator`]: struct.CredentialCreator.html
     pub fn new_credential_creator(
         &self,

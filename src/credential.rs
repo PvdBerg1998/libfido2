@@ -38,6 +38,30 @@ pub struct CredentialCreationData<'a> {
     pub extensions: CredentialExtensions,
 }
 
+impl<'a> CredentialCreationData<'a> {
+    pub fn with_defaults(
+        client_data_hash: &'a [u8],
+        relying_party_id: &'a CStr,
+        relying_party_name: &'a CStr,
+        user_id: &'a [u8],
+        user_name: &'a CStr,
+    ) -> Self {
+        CredentialCreationData {
+            excluded_ids: &[],
+            credential_type: CredentialType::ES256,
+            client_data_hash,
+            relying_party_id,
+            relying_party_name,
+            user_id,
+            user_name,
+            user_display_name: None,
+            user_image_uri: None,
+            options: CredentialOptions::empty(),
+            extensions: CredentialExtensions::empty(),
+        }
+    }
+}
+
 impl CredentialCreator {
     pub(crate) fn new(
         mut credential: Credential,
