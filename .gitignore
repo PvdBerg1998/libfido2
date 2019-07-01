@@ -6,3 +6,4 @@ Cargo.lock
 *.dll
 *.zip
 *.pdb
+/libfido2
