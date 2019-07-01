@@ -5,11 +5,14 @@ use std::{
     slice, str,
 };
 
-/// Converts a `&*mut c_char` to a boxed array of `&str`s.
+/// Converts a `*const *mut c_char` to a boxed array of `&str`s.
 ///
 /// # Unsafety
 /// - Contained strings must be valid UTF-8.
-pub(crate) unsafe fn convert_cstr_array_ptr<'a>(array: &*mut c_char, len: usize) -> Box<[&'a str]> {
+pub(crate) unsafe fn convert_cstr_array_ptr<'a>(
+    array: *const *mut c_char,
+    len: usize,
+) -> Box<[&'a str]> {
     slice::from_raw_parts(array, len)
         .iter()
         .map(|ptr| {
@@ -26,7 +29,7 @@ pub struct NonNull<T: ?Sized>(std::ptr::NonNull<T>);
 
 impl<T: ?Sized> NonNull<T> {
     pub fn new(ptr: *mut T) -> Option<Self> {
-        std::ptr::NonNull::new(ptr).map(|inner| NonNull(inner))
+        std::ptr::NonNull::new(ptr).map(NonNull)
     }
 
     pub fn as_ptr(&self) -> *const T {

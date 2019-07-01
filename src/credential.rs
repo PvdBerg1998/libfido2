@@ -37,6 +37,7 @@ pub struct CredentialRef<'a> {
     pub auth_data: &'a [u8],
     pub client_data_hash: &'a [u8],
     pub id: &'a [u8],
+    pub credential_type: CredentialType,
     pub public_key: &'a [u8],
     pub signature: &'a [u8],
     pub x509_certificate: &'a [u8],
@@ -106,6 +107,19 @@ impl CredentialCreator {
     }
 }
 
+impl CredentialRef<'_> {
+    /// Tries to parse the contained public key as a [`PublicKey`].
+    ///
+    /// [`PublicKey`]: enum.PublicKey.html
+    pub fn public_key(&self) -> Result<PublicKey> {
+        match self.credential_type {
+            CredentialType::ES256 => PublicKey::new_es256(self.public_key),
+            CredentialType::RS256 => PublicKey::new_rs256(self.public_key),
+            CredentialType::EDDSA => PublicKey::new_eddsa(self.public_key),
+        }
+    }
+}
+
 impl Credential {
     pub fn as_ref<'a>(&'a self) -> CredentialRef<'a> {
         unsafe {
@@ -131,6 +145,8 @@ impl Credential {
                 .map(|ptr| slice::from_raw_parts(ptr, fido_cred_id_len(credential)))
                 .unwrap();
 
+            let credential_type = CredentialType::from_ffi(fido_cred_type(credential));
+
             let public_key = fido_cred_pubkey_ptr(credential)
                 .as_ref()
                 .map(|ptr| slice::from_raw_parts(ptr, fido_cred_pubkey_len(credential)))
@@ -151,16 +167,12 @@ impl Credential {
                 auth_data,
                 client_data_hash,
                 id,
+                credential_type,
                 public_key,
                 signature,
                 x509_certificate,
             }
         }
-    }
-
-    pub fn get_public_key(&self) -> Result<PublicKey> {
-        // @TODO need to get type of pubkey somehow
-        unimplemented!()
     }
 
     /// Verifies that the Credential was signed with the key attested in the x509 certificate.
@@ -368,7 +380,7 @@ impl CredentialFormat {
     const FIDO_U2F_FORMAT: &'static str = "fido-u2f";
     const FIDO_U2F_FORMAT_CSTR: *const raw::c_char = b"fido-u2f\0" as *const _ as *const _;
 
-    pub(crate) fn to_ffi(&self) -> *const raw::c_char {
+    pub(crate) fn to_ffi(self) -> *const raw::c_char {
         match self {
             CredentialFormat::Fido2 => Self::FIDO2_FORMAT_CSTR,
             CredentialFormat::FidoU2F => Self::FIDO_U2F_FORMAT_CSTR,
@@ -397,6 +409,19 @@ pub enum CredentialType {
     ES256 = COSE_ES256,
     RS256 = COSE_RS256,
     EDDSA = COSE_EDDSA,
+}
+
+impl CredentialType {
+    /// # Panics
+    /// - When passed an invalid value
+    pub(crate) fn from_ffi(i: raw::c_int) -> Self {
+        match i {
+            COSE_ES256 => CredentialType::ES256,
+            COSE_RS256 => CredentialType::RS256,
+            COSE_EDDSA => CredentialType::EDDSA,
+            _ => panic!("Invalid credential type"),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

@@ -66,6 +66,11 @@ impl DeviceList {
     pub fn len(&self) -> usize {
         self.found
     }
+
+    /// Returns whether there were no devices found.
+    pub fn is_empty(&self) -> bool {
+        self.found == 0
+    }
 }
 
 // libfido2_sys guarantees this.

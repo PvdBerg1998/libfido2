@@ -137,7 +137,7 @@ impl Fido {
 pub struct FidoError(raw::c_int);
 
 impl FidoError {
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         unsafe {
             let error_str = fido_strerr(self.0);
             assert!(!error_str.is_null());

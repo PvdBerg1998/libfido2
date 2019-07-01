@@ -1,5 +1,6 @@
-use crate::{ffi::NonNull, FidoError, Result, FIDO_OK};
+use crate::{ffi::NonNull, CredentialType, FidoError, Result, FIDO_OK};
 use libfido2_sys::*;
+use std::os::raw;
 
 pub enum PublicKey {
     ES256(ES256),
@@ -36,6 +37,22 @@ impl PublicKey {
                 FIDO_OK => Ok(PublicKey::EDDSA(pk)),
                 err => Err(FidoError(err)),
             }
+        }
+    }
+
+    pub(crate) fn credential_type(&self) -> CredentialType {
+        match self {
+            PublicKey::ES256(_) => CredentialType::ES256,
+            PublicKey::RS256(_) => CredentialType::RS256,
+            PublicKey::EDDSA(_) => CredentialType::EDDSA,
+        }
+    }
+
+    pub(crate) fn as_ptr(&self) -> *const raw::c_void {
+        match self {
+            PublicKey::ES256(inner) => inner.0.as_ptr() as *const _,
+            PublicKey::RS256(inner) => inner.0.as_ptr() as *const _,
+            PublicKey::EDDSA(inner) => inner.0.as_ptr() as *const _,
         }
     }
 }

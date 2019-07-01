@@ -1,7 +1,7 @@
 use crate::{ffi::NonNull, FidoError, PublicKey, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{ffi::CStr, slice};
+use std::{ffi::CStr, os::raw, slice};
 
 // Raw assertion is initialized with NULL data
 // Only expose this type when it is properly initialized (returned from device)
@@ -17,19 +17,19 @@ pub struct AssertionCreator(Assertion);
 /// [`Assertion`]: struct.Assertion.html
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct AssertionCreationData<'a> {
-    pub relying_party_id: &'a CStr,
-    pub client_data_hash: &'a [u8],
     pub allowed_credential_ids: Option<&'a [&'a [u8]]>,
+    pub client_data_hash: &'a [u8],
+    pub relying_party_id: &'a CStr,
     pub options: AssertionOptions,
 }
 
 impl<'a> AssertionCreationData<'a> {
     /// Constructs a new `AssertionCreationData` with given parameters and defaults.
-    pub fn with_defaults(relying_party_id: &'a CStr, client_data_hash: &'a [u8]) -> Self {
+    pub fn with_defaults(client_data_hash: &'a [u8], relying_party_id: &'a CStr) -> Self {
         AssertionCreationData {
-            relying_party_id,
-            client_data_hash,
             allowed_credential_ids: None,
+            client_data_hash,
+            relying_party_id,
             options: AssertionOptions::empty(),
         }
     }
@@ -133,25 +133,33 @@ impl Assertion {
         })
     }
 
-    /// Returns an iterator over the successfully verified [statements] contained in this assertion.
+    /// Verifies all [statements] contained in this assertion and returns them as an iterator.
     ///
     /// [statements]: struct.Statement.html
     pub fn iter_verified<'a>(
         &'a self,
         public_key: PublicKey,
-    ) -> impl Iterator<Item = Statement<'a>> {
+    ) -> impl Iterator<Item = (Statement<'a>, Result<()>)> {
         let assertion = self.raw.as_ptr();
-        self.iter()
-            .enumerate()
-            .filter(move |(i, statement)| {
-                unsafe {
-                    //match fido_assert_verify(assertion, i, arg3: ::std::os::raw::c_int, arg4: *const ::std::os::raw::c_void)
-                    // @TODO
-                    unimplemented!();
-                    false
-                }
-            })
-            .map(|(_, statement)| statement)
+        self.iter().enumerate().map(move |(i, statement)| unsafe {
+            match fido_assert_verify(
+                assertion,
+                i,
+                public_key.credential_type() as raw::c_int,
+                public_key.as_ptr(),
+            ) {
+                FIDO_OK => (statement, Ok(())),
+                err => (statement, Err(FidoError(err))),
+            }
+        })
+    }
+
+    /// Checks if the assertion contains any verified [statement].
+    ///
+    /// [statement]: struct.Statement.html
+    pub fn verify_one(&self, public_key: PublicKey) -> bool {
+        self.iter_verified(public_key)
+            .any(|(_, result)| result.is_ok())
     }
 
     /// Returns the amount of statements in this assertion.

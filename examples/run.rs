@@ -26,6 +26,8 @@ pub fn main() {
     println!("Found device: {:#?}", info);
 
     let mut device = fido.new_device(info.path).expect("Unable to open device");
+
+    /*
     println!("Mode: {:?}", device.mode());
     println!("CTAPHID info: {:#?}", device.ctap_hid_info());
     println!(
@@ -35,6 +37,7 @@ pub fn main() {
             .expect("Unable to request CBOR info")
             .as_ref()
     );
+    */
 
     println!("Creating credential...");
     let credential = device
@@ -57,15 +60,17 @@ pub fn main() {
     let assertion = device
         .request_assertion_verification(
             fido.new_assertion_creator(AssertionCreationData::with_defaults(
-                &relying_party_id,
                 &CLIENT_DATA_HASH,
+                &relying_party_id,
             ))
             .unwrap(),
             None,
         )
         .unwrap();
-    println!(
-        "Created assertion: {:?}",
-        assertion.iter().collect::<Vec<_>>()
-    );
+    println!("Created assertion");
+
+    // @FIXME this fails to verify
+    println!("Verifying assertion...");
+    let pubkey = credential.as_ref().public_key().unwrap();
+    println!("{:?}", assertion.iter_verified(pubkey).collect::<Vec<_>>());
 }
