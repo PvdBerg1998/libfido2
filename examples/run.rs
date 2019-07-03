@@ -16,18 +16,21 @@ const RELYING_PARTY_ID: &'static str = "localhost";
 const RELYING_PARTY_NAME: &'static str = "Oost West, Thuis Best";
 
 pub fn main() {
+    // Prepare CStrings
     let relying_party_id = CString::new(RELYING_PARTY_ID).unwrap();
     let relying_party_name = CString::new(RELYING_PARTY_NAME).unwrap();
     let user_name = CString::new(USER_NAME).unwrap();
+
+    // Initialize library
     let fido = Fido::new(false);
 
+    // Detect connected FIDO devices
     let detected_devices = fido.detect_devices(1);
     let info = detected_devices.iter().next().expect("No device found");
     println!("Found device: {:#?}", info);
 
+    // Open the first found device
     let mut device = fido.new_device(info.path).expect("Unable to open device");
-
-    /*
     println!("Mode: {:?}", device.mode());
     println!("CTAPHID info: {:#?}", device.ctap_hid_info());
     println!(
@@ -37,8 +40,8 @@ pub fn main() {
             .expect("Unable to request CBOR info")
             .as_ref()
     );
-    */
 
+    // Create a new, non resident credential
     println!("Creating credential...");
     let credential = device
         .request_credential_creation(
@@ -53,14 +56,16 @@ pub fn main() {
             None,
         )
         .unwrap();
-    println!("Created credential: {:?}", credential.as_ref());
     assert!(credential.verify().is_ok());
+    let credential = credential.as_ref();
+    println!("Created credential: {:?}", credential);
 
+    // Create a new assertion matching the generated credential
     println!("Creating assertion...");
     let assertion = device
         .request_assertion_verification(
             fido.new_assertion_creator(AssertionCreationData::with_defaults(
-                Some(&[credential.as_ref().id]),
+                Some(&[credential.id]),
                 &CLIENT_DATA_HASH,
                 &relying_party_id,
             ))
@@ -70,7 +75,8 @@ pub fn main() {
         .unwrap();
     println!("Created assertion");
 
+    // Do the verification
     println!("Verifying assertion...");
-    let pubkey = credential.as_ref().public_key().unwrap();
-    println!("{:?}", assertion.iter_verified(pubkey).collect::<Vec<_>>());
+    assert!(assertion.verify_one(credential.public_key().unwrap()));
+    println!("Verified!");
 }

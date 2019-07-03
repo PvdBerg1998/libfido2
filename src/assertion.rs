@@ -25,6 +25,9 @@ pub struct AssertionCreationData<'a> {
 
 impl<'a> AssertionCreationData<'a> {
     /// Constructs a new `AssertionCreationData` with given parameters and defaults.
+    ///
+    /// # Remarks
+    /// - `allowed_credential_ids`: if this is set to `None`, the authenticator will try to use any resident key
     pub fn with_defaults(
         allowed_credential_ids: Option<&'a [&'a [u8]]>,
         client_data_hash: &'a [u8],
@@ -39,6 +42,9 @@ impl<'a> AssertionCreationData<'a> {
     }
 }
 
+/// A statement, contained in an [`Assertion`].
+///
+/// [`Assertion`]: struct.Assertion.html
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Statement<'a> {
     pub auth_data: &'a [u8],
