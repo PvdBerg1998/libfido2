@@ -60,6 +60,7 @@ pub fn main() {
     let assertion = device
         .request_assertion_verification(
             fido.new_assertion_creator(AssertionCreationData::with_defaults(
+                Some(&[credential.as_ref().id]),
                 &CLIENT_DATA_HASH,
                 &relying_party_id,
             ))
@@ -69,7 +70,6 @@ pub fn main() {
         .unwrap();
     println!("Created assertion");
 
-    // @FIXME this fails to verify
     println!("Verifying assertion...");
     let pubkey = credential.as_ref().public_key().unwrap();
     println!("{:?}", assertion.iter_verified(pubkey).collect::<Vec<_>>());

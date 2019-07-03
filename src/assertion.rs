@@ -25,9 +25,13 @@ pub struct AssertionCreationData<'a> {
 
 impl<'a> AssertionCreationData<'a> {
     /// Constructs a new `AssertionCreationData` with given parameters and defaults.
-    pub fn with_defaults(client_data_hash: &'a [u8], relying_party_id: &'a CStr) -> Self {
+    pub fn with_defaults(
+        allowed_credential_ids: Option<&'a [&'a [u8]]>,
+        client_data_hash: &'a [u8],
+        relying_party_id: &'a CStr,
+    ) -> Self {
         AssertionCreationData {
-            allowed_credential_ids: None,
+            allowed_credential_ids,
             client_data_hash,
             relying_party_id,
             options: AssertionOptions::empty(),

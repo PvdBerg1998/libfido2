@@ -1,22 +1,11 @@
 # libfido2
 
-A WIP Rust wrapper for [libfido2](https://github.com/Yubico/libfido2).
+A safe Rust wrapper for [libfido2](https://github.com/Yubico/libfido2).
 
-## Current progress
+## Todo
 
-- [x] Device detection
-- [x] Device creation
-- [x] Device CBOR information
-- [x] Device setting management
-- [x] Credential creation
-- [x] Credential verification
-- [x] Assertion creation
-- [ ] Assertion verification: almost finished!
 - [ ] Improve docs
-
-## Possible future plans
-- [ ] Type safety for crypto (?)
-- [ ] Integration with crypto crate (?)
+- [ ] Extensive testing
 
 ## License
 
