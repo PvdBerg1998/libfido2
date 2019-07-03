@@ -3,9 +3,9 @@ use libfido2_sys::*;
 use std::os::raw;
 
 pub enum PublicKey {
-    ES256(ES256),
-    RS256(RS256),
-    EDDSA(EDDSA),
+    ES256(#[doc(hidden)] ES256),
+    RS256(#[doc(hidden)] RS256),
+    EDDSA(#[doc(hidden)] EDDSA),
 }
 
 // @TODO add way to create this from <something else>. openssl maybe.
@@ -57,8 +57,13 @@ impl PublicKey {
     }
 }
 
+#[doc(hidden)]
 pub struct ES256(pub(crate) NonNull<es256_pk>);
+
+#[doc(hidden)]
 pub struct RS256(pub(crate) NonNull<rs256_pk>);
+
+#[doc(hidden)]
 pub struct EDDSA(pub(crate) NonNull<eddsa_pk>);
 
 // libfido2_sys guarantees this.
